@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1></h1>
+    <p class="tagline">A tiny URL shortener built with FastAPI & pure JS</p>
+
+    <div class="form">
+      <input id="urlInput" type="url" placeholder="Enter your long URL..." required>
+      <button id="shortenBtn">Shorten</button>
+    </div>
+
+    <div id="result" class="hidden">
+      <p>Your short link:</p>
+      <a id="shortUrl" href="#" target="_blank"></a>
+      <button id="copyBtn">Copy</button>
+    </div>
+
+    <footer>
+      <p>Powered by FastAPI</p>
+    </footer>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

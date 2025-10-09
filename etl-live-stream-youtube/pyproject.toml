@@ -1,0 +1,15 @@
+[project]
+name = "etl-live-stream"
+version = "0.1.0"
+description = "Real-time sentiment analysis for YouTube comments using Spark Streaming"
+requires-python = ">=3.12"
+dependencies = [
+    "kafka-python==2.2.15",
+    "pyspark>=4.0.0",
+    "requests>=2.32.4",
+    "nltk>=3.8.1",
+    "pymongo>=4.6.0",
+    "python-dotenv>=1.0.0",
+    "vaderSentiment>=3.3.2",
+    "structlog>=23.2.0"
+]
