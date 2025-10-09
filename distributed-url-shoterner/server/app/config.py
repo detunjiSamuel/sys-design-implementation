@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     APP_NAME: str = os.environ.get("APP_NAME", "Distributed URL Shortener")
     ENV: str = os.environ.get("ENV", "development")
 
-    MONGO_URL: str = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+    MONGO_URL: str = os.environ.get("MONGO_URL", "mongodb://localhost:27017/mongodemo")
     MONGO_DB: str = os.environ.get("MONGO_DB", "mongodemo")
     REDIS_URL: str = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
     APP_HOST: str = os.environ.get("APP_HOST", "0.0.0.0")
