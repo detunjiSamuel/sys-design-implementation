@@ -1,6 +1,8 @@
 import requests
+import os
 
 #TODO: pass API_KEY in data class from env variable
+
 API_KEY =os.getenv("YT_API_KEY")
 
 

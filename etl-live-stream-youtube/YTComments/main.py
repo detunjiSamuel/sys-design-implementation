@@ -5,10 +5,12 @@ import asyncio
 from YTComments.CommentCollector import CommentsCollector
 
 
-
+# TODOD: make changes to to collector to use asyncio without semaphre:
+# reason : they do not really share resors
+# TODO : update requests to aihttp reason: there is no reason to block the application while waiting for network response
 
 async def run():
-    video_ids = ["lLTEkaB8l1A" , "_MXcIddl6eA" , "wkyXiX5Fc6E"]
+    video_ids = ["JQDaaHJ9u1E"]
 
     collector = CommentsCollector(max_concurrent_tasks=2)
     for vid in video_ids:

@@ -4,16 +4,16 @@ from YTComments.Comment import Comment
 
 import json
 
-
 from kafka import KafkaProducer
-#TODO: pass kafka producer instance from outside : collector corrently uses it directly
-producer = KafkaProducer(bootstrap_servers='localhost:9092' , value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+
+# TODO: pass kafka producer instance from outside : collector corrently uses it directly
+producer = KafkaProducer(bootstrap_servers='localhost:9092', value_serializer=lambda v: json.dumps(v).encode('utf-8'))
 
 
 class CommentsCollector:
 
-    def __init__(self , max_concurrent_tasks = 5):
-        self.active_videos = {}#video_id : Comment instance
+    def __init__(self, max_concurrent_tasks=5):
+        self.active_videos = {}  # video_id : Comment instance
         self.running = False
         self.semaphore = asyncio.Semaphore(max_concurrent_tasks)
 
@@ -21,8 +21,7 @@ class CommentsCollector:
         self.running = True
         asyncio.create_task(self._collection_loop())
 
-    async def add_video(self , video_id):
-
+    async def add_video(self, video_id):
         self.active_videos[video_id] = Comment(video_id)
 
     async def _collection_loop(self):
@@ -38,20 +37,31 @@ class CommentsCollector:
                     print(f"Video {video_id} is not live streaming anymore.")
                     del self.active_videos[video_id]
             if tasks:
-                await asyncio.gather(*tasks , return_exceptions=True)
+                await asyncio.gather(*tasks, return_exceptions=True)
             await asyncio.sleep(3)
 
-
-    async def _collect_video_comments(self , comment_instance):
+    async def _collect_video_comments(self, comment_instance):
 
         async with self.semaphore:
             try:
                 comments = comment_instance.get_live_chat_messages()
                 if comments and 'items' in comments:
                     items = comments['items']
+                    data = [
+                        {
+                            'comment': i['snippet']['displayMessage'],
+                            'profile_image': i['authorDetails']['profileImageUrl'],
+                            'author_name': i['authorDetails']['displayName'],
+                            'published_at': i['snippet']['publishedAt']
+
+                        } for i in items]
+
                     print(f"Fetched {len(items)} comments for video {comment_instance.video_id}")
-                    #TODO: pass kafta producer instance from outside
-                    producer.send( f"comments_{comment_instance.video_id}", value=items)
-                    producer.flush() # move to disk from buffer
+                    # TODO: pass kafta producer instance from outside
+                    producer.send(f"comments_{comment_instance.video_id}", value=data)
+                    producer.flush()  # move to disk from buffer
+
+                await asyncio.sleep(2)  # notuced some rate limiting from youtube api
+
             except Exception as e:
                 print(f"Failed to collect from {comment_instance.video_id}: {e}")

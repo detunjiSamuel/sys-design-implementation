@@ -24,7 +24,8 @@ Goal :
 """
 
 
-
+from YTComments.main import main as comments_main
+from sparkAnalysis.main import  main as spark_main
 
 
 def main():
@@ -32,4 +33,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    comments_main()
+    spark_main()
