@@ -4,14 +4,19 @@ and performs sentiment analysis.
 """
 import asyncio
 from dotenv import load_dotenv
-from sparkAnalysis.SentimentProcessor import SentimentProcessor
+
+from .SentimentCollector import SentimentCollector
+import nltk
 
 # Load environment variables
 load_dotenv()
 
+# Download VADER lexicon for sentiment analysis : nltk caches it locally
+nltk.download("vader_lexicon")
+
 async def run():
     # Initialize the sentiment processor
-    processor = SentimentProcessor()
+    collector = SentimentCollector()
 
     # List of video IDs to analyze (should match the ones in YTComments)
     video_ids = ["JQDaaHJ9u1E"]
@@ -19,7 +24,7 @@ async def run():
     # Start processing for each video
     for video_id in video_ids:
         print(f"Starting sentiment analysis for video: {video_id}")
-        await processor.process_video_stream(video_id)
+        await collector.process_video_stream(video_id)
         await asyncio.sleep(2)  # Small delay between starting each stream
 
     try:
@@ -28,7 +33,7 @@ async def run():
             await asyncio.sleep(1)
     except KeyboardInterrupt:
         print("\nShutting down sentiment analysis gracefully...")
-        await processor.stop_all_streams()
+        await collector.stop_all_streams()
 
 def main():
     print("Starting Spark Sentiment Analysis Service...")

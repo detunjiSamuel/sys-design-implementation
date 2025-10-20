@@ -1,6 +1,15 @@
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from pyspark.sql.types import (
+    FloatType,
+    StructType,
+    StructField,
+    StringType,
+    TimestampType
+)
 
+from pyspark.sql.functions import col, from_json
 
-class VideoSentimentProcessor:
+class SentimentProcessor:
     def __init__(self, video_id, spark, mongodb_collection):
         self.video_id = video_id
         self.spark = spark
@@ -53,19 +62,18 @@ class VideoSentimentProcessor:
 
             if processed_comments:
                 self.collection.insert_many(processed_comments)
-                logger.info(
+                print(
                     "batch_processed",
-                    video_id=self.video_id,
-                    batch_id=batch_id,
-                    comments_count=len(processed_comments)
+                    f"video_id={self.video_id}",
+                    f"batch_id={batch_id}"
+                    f"comments_count={len(processed_comments)}"
                 )
 
         except Exception as e:
-            logger.error(
+            print(
                 "batch_processing_error",
-                video_id=self.video_id,
-                batch_id=batch_id,
-                error=str(e)
+                f"video_id={self.video_id}",
+                f"batch_id={batch_id}"
             )
 
     async def start_processing(self):
@@ -103,14 +111,14 @@ class VideoSentimentProcessor:
                 .start()
             )
 
-            logger.info("stream_started", video_id=self.video_id)
+            print("stream_started",self.video_id)
 
         except Exception as e:
-            logger.error("stream_start_error", video_id=self.video_id, error=str(e))
+            print("stream_start_error",self.video_id, e)
             raise
 
     async def stop_processing(self):
         """Stop processing the video's comment stream"""
         if self.streaming_query:
             self.streaming_query.stop()
-            logger.info("stream_stopped", video_id=self.video_id)
+            print("stream_stopped",self.video_id)

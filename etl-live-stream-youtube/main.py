@@ -33,5 +33,5 @@ def main():
 
 
 if __name__ == "__main__":
-    comments_main()
+    # comments_main()
     spark_main()

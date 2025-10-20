@@ -4,17 +4,16 @@ Kafka, and MongoDB.
 """
 import os
 from typing import Dict
-import structlog
 from dotenv import load_dotenv
 from pyspark.sql import SparkSession
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
+from .SentimentProcessor import SentimentProcessor
+
 # Load environment variables
 load_dotenv()
 
-# Configure structured logging
-logger = structlog.get_logger()
 
 
 class SentimentCollector:
@@ -36,9 +35,9 @@ class SentimentCollector:
         self.base_collection = os.getenv("COLLECTION", "comments")
 
         # Store video processors
-        self.video_processors: Dict[str, VideoSentimentProcessor] = {}
+        self.video_processors: Dict[str, SentimentProcessor] = {}
 
-        logger.info("sentiment_processor_initialized")
+        print("sentiment_processor_initialized")
 
     def get_collection(self, video_id: str) -> Collection:
         """Get or create MongoDB collection for a specific video"""
@@ -48,17 +47,17 @@ class SentimentCollector:
     async def process_video_stream(self, video_id: str):
         """Start sentiment analysis for a specific video stream"""
         if video_id in self.video_processors:
-            logger.warning("stream_already_exists", video_id=video_id)
+            print("stream_already_exists:",video_id)
             return
 
         try:
             collection = self.get_collection(video_id)
-            processor = VideoSentimentProcessor(video_id, self.spark, collection)
+            processor = SentimentProcessor(video_id, self.spark, collection)
             self.video_processors[video_id] = processor
             await processor.start_processing()
 
         except Exception as e:
-            logger.error("video_processing_error", video_id=video_id, error=str(e))
+            print("video_processing_error",e)
             await self.stop_video_stream(video_id)
             raise
 
@@ -68,7 +67,7 @@ class SentimentCollector:
         if processor:
             await processor.stop_processing()
             del self.video_processors[video_id]
-            logger.info("video_stream_stopped", video_id=video_id)
+            print("video_stream_stopped",video_id)
 
     async def stop_all_streams(self):
         """Stop all video streams and cleanup resources"""
@@ -81,4 +80,4 @@ class SentimentCollector:
         if self.mongo_client:
             self.mongo_client.close()
 
-        logger.info("all_streams_stopped")
+        print("all_streams_stopped")
