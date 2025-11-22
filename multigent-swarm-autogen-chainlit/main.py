@@ -1,8 +1,10 @@
 
 from agents import create_agents_for_task
 from functools import cache
-from autogen_agentchat.messages import ModelClientStreamingChunkEvent
+from autogen_agentchat.messages import ModelClientStreamingChunkEvent, ToolCallRequestEvent
 from autogen_agentchat.teams import Swarm
+from autogen_agentchat.base import TaskResult
+
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 import chainlit as cl
 from typing import cast
@@ -54,9 +56,21 @@ async def message_handler(message: cl.Message) -> None:
                 current_stream_message = cl.Message(content=source_block)
             await current_stream_message.stream_token(evt.content)
         elif current_stream_message is not None:
-            #LLM's send complete message right after streaming chunks
+            # LLM's send complete message right after streaming chunks
             await current_stream_message.send()
             current_stream_message = None
-        
+        elif isinstance(evt, ToolCallRequestEvent):
+            tool_call_message = f"[{evt.source}] is calling tools \n"
+            tool_call_message += "\n".join(
+                [f"{tool.name} : {tool.arguments}" for tool in evt.content])
+            await cl.Message(content=tool_call_message, author=evt.source).send()
+        elif isinstance(evt, TaskResult):
+            final_message = "Task Result:\n"
+            if evt.stop_reason:
+                final_message += f"Stopped because: {evt.stop_reason}\n"
+            await cl.Message(content=final_message).send()
         else:
-            print("Unknown message type received in stream")
+            continue
+            unknown_message = f"Unknown event type: {type(evt)} \n"
+            unknown_message += f" with content: {evt}"
+            await cl.Message(content=unknown_message).send()
