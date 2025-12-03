@@ -1,4 +1,6 @@
 import numpy as np
+import json
+import base64
 
 
 class VectorDB:
@@ -66,3 +68,32 @@ class VectorDB:
             )
 
         return results
+
+    def save(self, file_path):
+        """Save the database to a JSON file."""
+        data = {
+            "matrix": (
+                base64.b64encode(self.matrix.tobytes()).decode()
+                if self.matrix is not None
+                else ""
+            ),
+            "shape": self.matrix.shape if self.matrix is not None else (0, 0),
+            "dtype": str(self.matrix.dtype) if self.matrix is not None else "float64",
+        }
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+
+    @classmethod
+    def load(cls, file_path):
+        """Load the database from a JSON file."""
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        db = cls()
+        if data["matrix"]:
+            matrix_bytes = base64.b64decode(data["matrix"])
+            dtype = data.get("dtype", "float64")
+            db.matrix = np.frombuffer(matrix_bytes, dtype=dtype).reshape(data["shape"])
+            # Reconstruct vectors list from matrix
+            db.vectors = list(db.matrix)
+        return db
