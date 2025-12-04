@@ -13,7 +13,7 @@ class VectorDB:
         self.index_to_id = []  # Map Matrix Index -> ID
 
     def insert_vector(self, vector, id=None, metadata=None):
-        """ Insert vector with optional ID and metadata """
+        """Insert vector with optional ID and metadata"""
         # Ensure vector is a numpy array
         vector = np.array(vector)
 
@@ -32,7 +32,7 @@ class VectorDB:
         return id
 
     def insert_document(self, doc, metadata=None):
-        """ Insert document with optional metadata - uses embedding function"""
+        """Insert document with optional metadata - uses embedding function"""
         if self.embedding_function is None:
             raise ValueError("Embedding function is not defined")
 
@@ -43,11 +43,11 @@ class VectorDB:
         return self.insert_vector(vector, metadata=metadata)
 
     def get(self, id):
-        """ Get document by ID """
+        """Get document by ID"""
         return self.data.get(id)
 
     def delete(self, id):
-        """ Delete document by ID """
+        """Delete document by ID"""
         if id not in self.data:
             return False
 
@@ -73,7 +73,7 @@ class VectorDB:
         return True
 
     def search(self, query, k=5, filter=None):
-        """ Search for documents similar to query """
+        """Search for documents similar to query"""
         # If query is a string and we have an embedding function, encode it
         if isinstance(query, str) and self.embedding_function is not None:
             query = self.embedding_function(query)
@@ -93,26 +93,48 @@ class VectorDB:
             return []
         query_normalized = query / query_norm
 
+        # Apply filter if provided
+        if filter is not None:
+            # Find indices that match the filter
+            filtered_indices = []
+            for i, id in enumerate(self.index_to_id):
+                metadata = self.data.get(id, {})
+                if filter(metadata):
+                    filtered_indices.append(i)
+
+            if not filtered_indices:
+                return []
+
+            filtered_indices = np.array(filtered_indices)
+            # Slice the matrix
+            matrix_to_search = self.matrix[filtered_indices]
+        else:
+            matrix_to_search = self.matrix
+            filtered_indices = np.arange(len(self.matrix))
+
         # Normalize matrix
-        matrix_norm = np.linalg.norm(self.matrix, axis=1, keepdims=True)
+        matrix_norm = np.linalg.norm(matrix_to_search, axis=1, keepdims=True)
         # Avoid division by zero
         matrix_norm[matrix_norm == 0] = 1
-        matrix_normalized = self.matrix / matrix_norm
+        matrix_normalized = matrix_to_search / matrix_norm
 
         # Calculate cosine similarity
         scores = np.dot(matrix_normalized, query_normalized)
 
         # Get top k indices
-        top_k_indices = np.argsort(scores)[-k:][::-1]
+        # Note: indices here are relative to matrix_to_search
+        top_k_relative_indices = np.argsort(scores)[-k:][::-1]
 
         results = []
-        for idx in top_k_indices:
-            id = self.index_to_id[idx]
+        for rel_idx in top_k_relative_indices:
+            # Map back to original index
+            original_idx = filtered_indices[rel_idx]
+            id = self.index_to_id[original_idx]
             results.append(
                 {
                     "id": id,
-                    "vector": self.vectors[idx],
-                    "score": float(scores[idx]),
+                    "vector": self.vectors[original_idx],
+                    "score": float(scores[rel_idx]),
                     "metadata": self.data.get(id),
                 }
             )
