@@ -97,8 +97,11 @@ class VectorDB:
     ) -> List[SearchResult]:
         """Search for documents similar to query"""
         # If query is a string and we have an embedding function, encode it
-        if isinstance(query, str) and self.embedding_function is not None:
-            query = self.embedding_function(query)
+        if isinstance(query, str):
+            if self.embedding_function is not None:
+                query = self.embedding_function(query)
+            else:
+                raise ValueError("Embedding function is needed for string queries")
 
         return self._cosine_similarity_search(query, k, filter_function, filter)
 
