@@ -174,6 +174,53 @@ class TestVectorDB(unittest.TestCase):
         results = db2.search(query, k=1)
         self.assertEqual(results[0].id, id1)
 
+    def test_structured_filtering(self):
+        """Test structured metadata filtering"""
+        db = VectorDB(embedding_function=self.mock_embedding_function)
+
+        # Insert documents
+        id1 = db.insert_document(
+            "Doc 1", metadata={"category": "A", "value": 10, "tags": ["x", "y"]}
+        )
+        id2 = db.insert_document(
+            "Doc 2", metadata={"category": "B", "value": 20, "tags": ["y", "z"]}
+        )
+        id3 = db.insert_document(
+            "Doc 3", metadata={"category": "A", "value": 30, "tags": ["x", "z"]}
+        )
+
+        # Test exact match
+        results = db.search("Doc", k=3, filter={"category": "A"})
+        self.assertEqual(len(results), 2)
+        for r in results:
+            self.assertEqual(r.metadata["category"], "A")
+
+        # Test $gt operator
+        results = db.search("Doc", k=3, filter={"value": {"$gt": 15}})
+        self.assertEqual(len(results), 2)  # Doc 2 and 3
+        for r in results:
+            self.assertTrue(r.metadata["value"] > 15)
+
+        # Test $in operator
+        results = db.search("Doc", k=3, filter={"category": {"$in": ["A", "C"]}})
+        self.assertEqual(len(results), 2)  # Doc 1 and 3
+
+        # Test combined structured filter and filter_function
+        # Filter: category="A" AND value > 20 (Doc 3)
+        results = db.search(
+            "Doc",
+            k=3,
+            filter={"category": "A"},
+            filter_function=lambda m: m["value"] > 20,
+        )
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].id, id3)
+
+        # Test multiple conditions in structured filter
+        results = db.search("Doc", k=3, filter={"category": "B", "value": {"$lt": 25}})
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].id, id2)
+
 
 if __name__ == "__main__":
     unittest.main()
