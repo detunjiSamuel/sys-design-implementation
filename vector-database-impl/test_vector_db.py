@@ -46,17 +46,17 @@ class TestVectorDB(unittest.TestCase):
         # Test 1: Query close to v1
         query1 = np.array([0.9, 0.1])
         results1 = db.search(query1, k=1)
-        self.assertEqual(results1[0]["id"], id1)
+        self.assertEqual(results1[0].id, id1)
 
         # Test 2: Query close to v2
         query2 = np.array([0.1, 0.9])
         results2 = db.search(query2, k=1)
-        self.assertEqual(results2[0]["id"], id2)
+        self.assertEqual(results2[0].id, id2)
 
         # Test 3: Query close to v3
         query3 = np.array([0.5, 0.5])
         results3 = db.search(query3, k=1)
-        self.assertEqual(results3[0]["id"], id3)
+        self.assertEqual(results3[0].id, id3)
 
     def test_features_and_embedding(self):
         """Test document insertion, retrieval, and deletion (formerly verify_features.py)"""
@@ -73,8 +73,8 @@ class TestVectorDB(unittest.TestCase):
 
         # Test search with text query
         results = db.search("Hello", k=1)
-        self.assertEqual(results[0]["id"], id1)
-        self.assertEqual(results[0]["metadata"]["content"], "Hello world")
+        self.assertEqual(results[0].id, id1)
+        self.assertEqual(results[0].metadata["content"], "Hello world")
 
         # Test persistence with metadata
         db.save(self.test_features_path)
@@ -94,7 +94,7 @@ class TestVectorDB(unittest.TestCase):
         # Verify search after delete
         results_after = db_loaded.search("Hello", k=1)
         self.assertEqual(
-            results_after[0]["id"], id2
+            results_after[0].id, id2
         )  # Should match the only remaining doc
 
     def test_filtering(self):
@@ -118,26 +118,28 @@ class TestVectorDB(unittest.TestCase):
 
         # Search with category filter
         results_sports = db.search(
-            "match", k=3, filter=lambda m: m["category"] == "sports"
+            "match", k=3, filter_function=lambda m: m["category"] == "sports"
         )
         self.assertEqual(len(results_sports), 2)
         for r in results_sports:
-            self.assertEqual(r["metadata"]["category"], "sports")
+            self.assertEqual(r.metadata["category"], "sports")
 
         # Search with year filter
-        results_2023 = db.search("match", k=3, filter=lambda m: m["year"] == 2023)
+        results_2023 = db.search(
+            "match", k=3, filter_function=lambda m: m["year"] == 2023
+        )
         self.assertEqual(len(results_2023), 2)
         for r in results_2023:
-            self.assertEqual(r["metadata"]["year"], 2023)
+            self.assertEqual(r.metadata["year"], 2023)
 
         # Search with combined filter
         results_combined = db.search(
             "match",
             k=3,
-            filter=lambda m: m["category"] == "sports" and m["year"] == 2023,
+            filter_function=lambda m: m["category"] == "sports" and m["year"] == 2023,
         )
         self.assertEqual(len(results_combined), 1)
-        self.assertEqual(results_combined[0]["id"], id1)
+        self.assertEqual(results_combined[0].id, id1)
 
     def test_persistence(self):
         """Test save and load functionality (formerly verify_persistence.py)"""
@@ -170,7 +172,7 @@ class TestVectorDB(unittest.TestCase):
         # Verify search on loaded DB
         query = np.array([0.9, 0.1])
         results = db2.search(query, k=1)
-        self.assertEqual(results[0]["id"], id1)
+        self.assertEqual(results[0].id, id1)
 
 
 if __name__ == "__main__":

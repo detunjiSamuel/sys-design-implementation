@@ -2,17 +2,31 @@ import numpy as np
 import json
 import base64
 from uuid import uuid4
+from typing import List, Optional, Dict, Any, Callable, Union
+from pydantic import BaseModel, Field
+
+
+class SearchResult(BaseModel):
+    id: str
+    score: float
+    metadata: Optional[Dict[str, Any]] = None
+    vector: Optional[List[float]] = None
 
 
 class VectorDB:
-    def __init__(self, embedding_function=None):
-        self.vectors = []
-        self.matrix = None
+    def __init__(self, embedding_function: Optional[Callable] = None):
+        self.vectors: List[np.ndarray] = []
+        self.matrix: Optional[np.ndarray] = None
         self.embedding_function = embedding_function
-        self.data = {}  # Map ID -> Metadata/Document
-        self.index_to_id = []  # Map Matrix Index -> ID
+        self.data: Dict[str, Dict[str, Any]] = {}  # Map ID -> Metadata/Document
+        self.index_to_id: List[str] = []  # Map Matrix Index -> ID
 
-    def insert_vector(self, vector, id=None, metadata=None):
+    def insert_vector(
+        self,
+        vector: Union[List[float], np.ndarray],
+        id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> str:
         """Insert vector with optional ID and metadata"""
         # Ensure vector is a numpy array
         vector = np.array(vector)
@@ -31,7 +45,9 @@ class VectorDB:
 
         return id
 
-    def insert_document(self, doc, metadata=None):
+    def insert_document(
+        self, doc: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> str:
         """Insert document with optional metadata - uses embedding function"""
         if self.embedding_function is None:
             raise ValueError("Embedding function is not defined")
@@ -42,11 +58,11 @@ class VectorDB:
         metadata["content"] = doc
         return self.insert_vector(vector, metadata=metadata)
 
-    def get(self, id):
+    def get(self, id: str) -> Optional[Dict[str, Any]]:
         """Get document by ID"""
         return self.data.get(id)
 
-    def delete(self, id):
+    def delete(self, id: str) -> bool:
         """Delete document by ID"""
         if id not in self.data:
             return False
@@ -72,15 +88,25 @@ class VectorDB:
 
         return True
 
-    def search(self, query, k=5, filter=None):
+    def search(
+        self,
+        query: Union[str, List[float], np.ndarray],
+        k: int = 5,
+        filter_function: Optional[Callable[[Dict[str, Any]], bool]] = None,
+    ) -> List[SearchResult]:
         """Search for documents similar to query"""
         # If query is a string and we have an embedding function, encode it
         if isinstance(query, str) and self.embedding_function is not None:
             query = self.embedding_function(query)
 
-        return self._cosine_similarity_search(query, k, filter)
+        return self._cosine_similarity_search(query, k, filter_function)
 
-    def _cosine_similarity_search(self, query, k=5, filter=None):
+    def _cosine_similarity_search(
+        self,
+        query: Union[List[float], np.ndarray],
+        k: int = 5,
+        filter_function: Optional[Callable[[Dict[str, Any]], bool]] = None,
+    ) -> List[SearchResult]:
         if self.matrix is None or len(self.matrix) == 0:
             return []
 
@@ -94,12 +120,12 @@ class VectorDB:
         query_normalized = query / query_norm
 
         # Apply filter if provided
-        if filter is not None:
+        if filter_function is not None:
             # Find indices that match the filter
             filtered_indices = []
             for i, id in enumerate(self.index_to_id):
                 metadata = self.data.get(id, {})
-                if filter(metadata):
+                if filter_function(metadata):
                     filtered_indices.append(i)
 
             if not filtered_indices:
@@ -131,17 +157,17 @@ class VectorDB:
             original_idx = filtered_indices[rel_idx]
             id = self.index_to_id[original_idx]
             results.append(
-                {
-                    "id": id,
-                    "vector": self.vectors[original_idx],
-                    "score": float(scores[rel_idx]),
-                    "metadata": self.data.get(id),
-                }
+                SearchResult(
+                    id=id,
+                    vector=self.vectors[original_idx].tolist(),
+                    score=float(scores[rel_idx]),
+                    metadata=self.data.get(id),
+                )
             )
 
         return results
 
-    def save(self, file_path):
+    def save(self, file_path: str):
         """Save the database to a JSON file."""
         data = {
             "matrix": (
@@ -158,7 +184,9 @@ class VectorDB:
             json.dump(data, f)
 
     @classmethod
-    def load(cls, file_path, embedding_function=None):
+    def load(
+        cls, file_path: str, embedding_function: Optional[Callable] = None
+    ) -> "VectorDB":
         """Load the database from a JSON file."""
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
