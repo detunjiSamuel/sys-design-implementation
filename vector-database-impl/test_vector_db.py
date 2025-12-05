@@ -2,6 +2,8 @@ import unittest
 import numpy as np
 import os
 from db import VectorDB
+import threading
+import time
 
 
 class TestVectorDB(unittest.TestCase):
@@ -220,6 +222,44 @@ class TestVectorDB(unittest.TestCase):
         results = db.search("Doc", k=3, filter={"category": "B", "value": {"$lt": 25}})
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].id, id2)
+
+    def test_concurrency(self):
+        """Test concurrent access to the database"""
+        db = VectorDB(embedding_function=self.mock_embedding_function)
+
+        num_threads = 10
+        docs_per_thread = 20
+
+        def worker(thread_id):
+            for i in range(docs_per_thread):
+                doc_content = f"Thread-{thread_id} Doc-{i}"
+                db.insert_document(
+                    doc_content, metadata={"thread": thread_id, "idx": i}
+                )
+                # Random small sleep to encourage interleaving
+                if i % 5 == 0:
+                    time.sleep(0.001)
+
+                # Occasional search
+                if i % 10 == 0:
+                    db.search("test", k=1)
+
+        threads = []
+        for i in range(num_threads):
+            t = threading.Thread(target=worker, args=(i,))
+            threads.append(t)
+            t.start()
+
+        for t in threads:
+            t.join()
+
+        # Verify total documents
+        expected_docs = num_threads * docs_per_thread
+        self.assertEqual(len(db.vectors), expected_docs)
+        self.assertEqual(len(db.index_to_id), expected_docs)
+        self.assertEqual(len(db.data), expected_docs)
+        if db.matrix is not None:
+            self.assertEqual(db.matrix.shape[0], expected_docs)
 
 
 if __name__ == "__main__":

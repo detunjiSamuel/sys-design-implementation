@@ -3,6 +3,7 @@ import json
 import base64
 from uuid import uuid4
 from typing import List, Optional, Dict, Any, Callable, Union
+import threading
 from pydantic import BaseModel, Field
 
 
@@ -20,6 +21,7 @@ class VectorDB:
         self.embedding_function = embedding_function
         self.data: Dict[str, Dict[str, Any]] = {}  # Map ID -> Metadata/Document
         self.index_to_id: List[str] = []  # Map Matrix Index -> ID
+        self.lock = threading.RLock()
 
     def insert_vector(
         self,
@@ -28,8 +30,9 @@ class VectorDB:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Insert vector with optional ID and metadata"""
-        # Ensure vector is a numpy array
-        vector = np.array(vector)
+        with self.lock:
+            # Ensure vector is a numpy array
+            vector = np.array(vector)
 
         if id is None:
             id = str(uuid4())
@@ -56,16 +59,19 @@ class VectorDB:
         if metadata is None:
             metadata = {}
         metadata["content"] = doc
-        return self.insert_vector(vector, metadata=metadata)
+        with self.lock:
+            return self.insert_vector(vector, metadata=metadata)
 
     def get(self, id: str) -> Optional[Dict[str, Any]]:
         """Get document by ID"""
-        return self.data.get(id)
+        with self.lock:
+            return self.data.get(id)
 
     def delete(self, id: str) -> bool:
         """Delete document by ID"""
-        if id not in self.data:
-            return False
+        with self.lock:
+            if id not in self.data:
+                return False
 
         # Find index
         try:
@@ -103,7 +109,8 @@ class VectorDB:
             else:
                 raise ValueError("Embedding function is needed for string queries")
 
-        return self._cosine_similarity_search(query, k, filter_function, filter)
+        with self.lock:
+            return self._cosine_similarity_search(query, k, filter_function, filter)
 
     def _cosine_similarity_search(
         self,
@@ -245,8 +252,9 @@ class VectorDB:
             "data": self.data,
             "index_to_id": self.index_to_id,
         }
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(data, f)
+        with self.lock:
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(data, f)
 
     @classmethod
     def load(

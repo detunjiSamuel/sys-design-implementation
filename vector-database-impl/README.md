@@ -104,3 +104,5 @@ new_db = VectorDB.load("my_vector_db.json", embedding_function=my_embedding_fn)
 - [ ] Binary persistence (Storing vectors as Base64 strings in a JSON file is inefficient for storage size and loading speed)
 - [ ] Include create a simple db server so it can be accessed over a network
 - [ ] Implement a multi tenant capability (right now all data is basically clustered in the same data structured)
+- [ ] Implement a Approxiamte nearest neighbor search ( currently using exact nearest neighbor search  which is not efficient for large datasets)
+
