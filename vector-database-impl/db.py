@@ -33,10 +33,11 @@ class VectorDB:
 
         if id is None:
             id = str(uuid4())
-        with self.lock:
-            # Ensure vector is a numpy array
-            vector = np.array(vector)
 
+        # Ensure vector is a numpy array
+        vector = np.array(vector)
+
+        with self.lock:
             self.vectors.append(vector)
             self.index_to_id.append(id)
             self.data[id] = metadata if metadata is not None else {}
@@ -103,25 +104,12 @@ class VectorDB:
     ) -> List[SearchResult]:
         """Search for documents similar to query"""
         # If query is a string and we have an embedding function, encode it
+        # If query is a string and we have an embedding function, encode it
         if isinstance(query, str):
             if self.embedding_function is not None:
                 query = self.embedding_function(query)
             else:
                 raise ValueError("Embedding function is needed for string queries")
-
-        with self.lock:
-            return self._cosine_similarity_search(query, k, filter_function, filter)
-
-    def _cosine_similarity_search(
-        self,
-        query: Union[List[float], np.ndarray],
-        k: int = 5,
-        filter_function: Optional[Callable[[Dict[str, Any]], bool]] = None,
-        filter: Optional[Dict[str, Any]] = None,
-    ) -> List[SearchResult]:
-        """Search for documents similar to query : Always called with lock held"""
-        if self.matrix is None or len(self.matrix) == 0:
-            return []
 
         # Ensure query is a numpy array
         query = np.array(query)
@@ -131,6 +119,22 @@ class VectorDB:
         if query_norm == 0:
             return []
         query_normalized = query / query_norm
+
+        with self.lock:
+            return self._cosine_similarity_search(
+                query_normalized, k, filter_function, filter
+            )
+
+    def _cosine_similarity_search(
+        self,
+        query_normalized: np.ndarray,
+        k: int = 5,
+        filter_function: Optional[Callable[[Dict[str, Any]], bool]] = None,
+        filter: Optional[Dict[str, Any]] = None,
+    ) -> List[SearchResult]:
+        """Search for documents similar to query : Always called with lock held"""
+        if self.matrix is None or len(self.matrix) == 0:
+            return []
 
         # Apply filter if provided
         if filter_function is not None or filter is not None:
