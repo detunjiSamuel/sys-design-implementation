@@ -30,21 +30,21 @@ class VectorDB:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Insert vector with optional ID and metadata"""
+
+        if id is None:
+            id = str(uuid4())
         with self.lock:
             # Ensure vector is a numpy array
             vector = np.array(vector)
 
-        if id is None:
-            id = str(uuid4())
+            self.vectors.append(vector)
+            self.index_to_id.append(id)
+            self.data[id] = metadata if metadata is not None else {}
 
-        self.vectors.append(vector)
-        self.index_to_id.append(id)
-        self.data[id] = metadata if metadata is not None else {}
-
-        if self.matrix is None:
-            self.matrix = np.array([vector])
-        else:
-            self.matrix = np.vstack([self.matrix, vector])
+            if self.matrix is None:
+                self.matrix = np.array([vector])
+            else:
+                self.matrix = np.vstack([self.matrix, vector])
 
         return id
 
@@ -59,8 +59,8 @@ class VectorDB:
         if metadata is None:
             metadata = {}
         metadata["content"] = doc
-        with self.lock:
-            return self.insert_vector(vector, metadata=metadata)
+
+        return self.insert_vector(vector, metadata=metadata)
 
     def get(self, id: str) -> Optional[Dict[str, Any]]:
         """Get document by ID"""
@@ -73,24 +73,24 @@ class VectorDB:
             if id not in self.data:
                 return False
 
-        # Find index
-        try:
-            idx = self.index_to_id.index(id)
-        except ValueError:
-            return False
+            # Find index
+            try:
+                idx = self.index_to_id.index(id)
+            except ValueError:
+                return False
 
-        # Remove from data
-        del self.data[id]
+            # Remove from data
+            del self.data[id]
 
-        # Remove from index_to_id
-        del self.index_to_id[idx]
+            # Remove from index_to_id
+            del self.index_to_id[idx]
 
-        # Remove from vectors
-        del self.vectors[idx]
+            # Remove from vectors
+            del self.vectors[idx]
 
-        # Remove from matrix
-        if self.matrix is not None:
-            self.matrix = np.delete(self.matrix, idx, axis=0)
+            # Remove from matrix
+            if self.matrix is not None:
+                self.matrix = np.delete(self.matrix, idx, axis=0)
 
         return True
 
@@ -119,6 +119,7 @@ class VectorDB:
         filter_function: Optional[Callable[[Dict[str, Any]], bool]] = None,
         filter: Optional[Dict[str, Any]] = None,
     ) -> List[SearchResult]:
+        """Search for documents similar to query : Always called with lock held"""
         if self.matrix is None or len(self.matrix) == 0:
             return []
 
