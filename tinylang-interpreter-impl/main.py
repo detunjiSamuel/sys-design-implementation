@@ -1,9 +1,29 @@
+from typing import Enum
+
+
+class TokenType(Enum):
+    """All token types for the language"""
+
+    NUMBER = auto()
+
+
+@dataclass
+class Token:
+    """Rep a single token"""
+
+    type: TokenType
+    value: Any
+    line: int
+    column: int
+
+
 class Lexer:
     def __init(self, source: str):
         self.source = source
         self.pos = 0
         self.line = 1
         self.column = 1
+        self.tokens = []
 
     def advance(self):
         """move to next char"""
@@ -47,6 +67,35 @@ class Lexer:
 
         while self.pos < len(self.source):
             self.skip_whitespace()
+
+            if self.current_char() is None:
+                break
+
+            char = self.current_char()
+            col = self.column
+
+            if char.isdigit():
+                self.tokens.append(self.read_number())
+
+    def read_number(self):
+        """
+        Read a number token
+        """
+        start_col = self.column
+        num_str = ""
+
+        decimal_found = False
+
+        while self.current_char() and (
+            self.current_char().isdigit() or self.current_char() == "."
+        ):
+            if self.current_char() == ".":
+                decimal_found = True
+            num_str += self.current_char()
+            self.advance()
+
+        value = float(num_str) if decimal_found else int(num_str)
+        return Token(TokenType.NUMBER, value, self.line, start_col)
 
 
 class Parser:
