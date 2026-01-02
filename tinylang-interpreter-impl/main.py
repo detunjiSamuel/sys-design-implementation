@@ -1,11 +1,13 @@
 
 
-
 class Lexer:
  def __init(self , source : str):
-  pass
+  self.source = source
  def tokenize(self):
   pass
+
+
+
 
 class Parser:
  def __init__(self , tokens : list):
