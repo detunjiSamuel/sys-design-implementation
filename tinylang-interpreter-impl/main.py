@@ -1,6 +1,24 @@
 
 
 
+class Lexer:
+ def __init(self , source : str):
+  pass
+ def tokenize(self):
+  pass
+
+class Parser:
+ def __init__(self , tokens : list):
+  pass
+ def parse(self):
+  pass
+
+class Interpreter:
+ def __init__(self , ast):
+  pass
+ def interpret(self):
+  pass
+
 """"
 
 I will be creating a simple programming language interpreter
