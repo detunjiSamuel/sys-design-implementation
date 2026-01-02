@@ -5,6 +5,7 @@ class TokenType(Enum):
     """All token types for the language"""
 
     NUMBER = auto()
+    STRING = auto()
 
 
 @dataclass
@@ -77,7 +78,32 @@ class Lexer:
             if char.isdigit():
                 self.tokens.append(self.read_number())
 
-    def read_number(self):
+            elif char == '"':  # open quote
+                self.tokens.append(self.read_string())
+
+    def read_string(self) -> Token:
+        """
+        Read a string token
+        """
+        start_col = self.column
+        self.advance()  # skip opening quote
+
+        string_value = ""
+
+        while self.current_char() and self.current_char() != '"':
+            if self.current_char() == "\\" and self.peek_char() == '"':
+                # escape char or closing quote
+                self.advance()
+                string_value += '"'
+                self.advance()
+            else:
+                string_value += self.current_char()
+                self.advance()
+
+        self.advance()  # skip closing quote
+        return Token(TokenType.STRING, string_value, self.line, start_col)
+
+    def read_number(self) -> Token:
         """
         Read a number token
         """
