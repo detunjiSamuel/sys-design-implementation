@@ -7,6 +7,17 @@ class TokenType(Enum):
     NUMBER = auto()
     STRING = auto()
 
+    # keywords
+    LET = auto()
+    IF = auto()
+    ELSE = auto()
+    WHILE = auto()
+    FUNC = auto()
+    RETURN = auto()
+    PRINT = auto()
+    TRUE = auto()
+    FALSE = auto()
+
 
 @dataclass
 class Token:
@@ -19,6 +30,21 @@ class Token:
 
 
 class Lexer:
+
+    KEYWORD_DEFAULT_VALUE = None
+
+    KEYWORDS = {
+        "let": TokenType.LET,
+        "if": TokenType.IF,
+        "else": TokenType.ELSE,
+        "while": TokenType.WHILE,
+        "fn": TokenType.FUNC,
+        "return": TokenType.RETURN,
+        "print": TokenType.PRINT,
+        "true": TokenType.TRUE,
+        "false": TokenType.FALSE,
+    }
+
     def __init(self, source: str):
         self.source = source
         self.pos = 0
@@ -80,6 +106,29 @@ class Lexer:
 
             elif char == '"':  # open quote
                 self.tokens.append(self.read_string())
+
+            elif char.isalpha() or char == "_":
+                # keywords or identifiers or variables names
+                # support underscore in team
+                self.tokens.append(self.read_identifier())
+
+    def read_identifier(self) -> Token:
+        """
+        Read an identifier or keyword
+        """
+        start_col = self.column
+        id_str = ""
+
+        while self.current_char and (
+            self.current_char().isalnum() or self.current_char() == "_"
+        ):
+            id_str += self.current_char()
+            self.advance()
+
+        token_type = self.KEYWORDS.get(id_str, TokenType.IDENTIFIER)
+        value = id_str if token_type == TokenType.IDENTIFIER else KEYWORD_DEFAULT_VALUE
+
+        return Token(token_type, value, self.line, start_col)
 
     def read_string(self) -> Token:
         """
