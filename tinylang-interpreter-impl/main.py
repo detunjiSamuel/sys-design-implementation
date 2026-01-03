@@ -1,4 +1,6 @@
-from typing import Enum
+from enum import Enum, auto
+from dataclasses import dataclass
+from typing import Any
 
 
 class TokenType(Enum):
@@ -6,6 +8,8 @@ class TokenType(Enum):
 
     NUMBER = auto()
     STRING = auto()
+
+    IDENTIFIER = auto()
 
     # keywords
     LET = auto()
@@ -17,6 +21,33 @@ class TokenType(Enum):
     PRINT = auto()
     TRUE = auto()
     FALSE = auto()
+
+    # operators
+    EQUALS = auto()
+    NOT_EQUALS = auto()
+
+    LESS_EQUAL = auto()
+    GREATER_EQUAL = auto()
+
+    PLUS = auto()
+    MINUS = auto()
+    MULTIPLY = auto()
+    DIVIDE = auto()
+    ASSIGN = auto()
+
+    LESS = auto()
+    GREATER = auto()
+
+    # delimiters
+    LPAREN = auto()
+    RPAREN = auto()
+    LBRACE = auto()
+    RBRACE = auto()
+    COMMA = auto()
+    SEMICOLON = auto()
+
+    # special
+    EOF = auto()
 
 
 @dataclass
@@ -45,7 +76,7 @@ class Lexer:
         "false": TokenType.FALSE,
     }
 
-    def __init(self, source: str):
+    def __init__(self, source: str):
         self.source = source
         self.pos = 0
         self.line = 1
@@ -54,8 +85,8 @@ class Lexer:
 
     def advance(self):
         """move to next char"""
-        if self.current_char:
-            if current_char == "\n":
+        if self.current_char():
+            if self.current_char() == "\n":
                 self.line += 1
                 self.column = 1
             else:
@@ -66,7 +97,7 @@ class Lexer:
         """
         Skip whitespaces and comments
         """
-        while self.current_char() and self.current_char in " \t\n\r":
+        while self.current_char() and self.current_char() in " \t\n\r":
             self.advance()
 
         # skipp comments
@@ -112,6 +143,91 @@ class Lexer:
                 # support underscore in team
                 self.tokens.append(self.read_identifier())
 
+            elif char == "=" and self.peek_char() == "=":
+                self.tokens.append(Token(TokenType.EQUALS, "==", self.line, col))
+                self.advance()
+                self.advance()
+
+            elif char == "!" and self.peek_char() == "=":
+                self.tokens.append(Token(TokenType.NOT_EQUALS, "!=", self.line, col))
+                self.advance()
+                self.advance()
+
+            # double operators
+
+            elif char == "<" and self.peek_char() == "=":
+                self.tokens.append(Token(TokenType.LESS_EQUAL, "<=", self.line, col))
+                self.advance()
+                self.advance()
+
+            elif char == ">" and self.peek_char() == "=":
+                self.tokens.append(Token(TokenType.GREATER_EQUAL, ">=", self.line, col))
+                self.advance()
+                self.advance()
+
+            # single operators
+
+            elif char == "+":
+                self.tokens.append(Token(TokenType.PLUS, "+", self.line, col))
+                self.advance()
+
+            elif char == "-":
+                self.tokens.append(Token(TokenType.MINUS, "-", self.line, col))
+                self.advance()
+
+            elif char == "*":
+                self.tokens.append(Token(TokenType.MULTIPLY, "*", self.line, col))
+                self.advance()
+
+            elif char == "/":
+                self.tokens.append(Token(TokenType.DIVIDE, "/", self.line, col))
+                self.advance()
+
+            elif char == "=":
+                self.tokens.append(Token(TokenType.ASSIGN, "=", self.line, col))
+                self.advance()
+
+            elif char == "<":
+                self.tokens.append(Token(TokenType.LESS, "<", self.line, col))
+                self.advance()
+
+            elif char == ">":
+                self.tokens.append(Token(TokenType.GREATER, ">", self.line, col))
+                self.advance()
+
+            # delimiters
+
+            elif char == "(":
+                self.tokens.append(Token(TokenType.LPAREN, "(", self.line, col))
+                self.advance()
+
+            elif char == ")":
+                self.tokens.append(Token(TokenType.RPAREN, ")", self.line, col))
+                self.advance()
+
+            elif char == "{":
+                self.tokens.append(Token(TokenType.LBRACE, "{", self.line, col))
+                self.advance()
+
+            elif char == "}":
+                self.tokens.append(Token(TokenType.RBRACE, "}", self.line, col))
+                self.advance()
+
+            elif char == ",":
+                self.tokens.append(Token(TokenType.COMMA, ",", self.line, col))
+                self.advance()
+
+            elif char == ";":
+                self.tokens.append(Token(TokenType.SEMICOLON, ";", self.line, col))
+                self.advance()
+
+            else:
+                raise SyntaxError(
+                    f"Unexpected character '{char}' at line {self.line}, column {col}"
+                )
+        self.tokens.append(Token(TokenType.EOF, None, self.line, self.column))
+        return self.tokens
+
     def read_identifier(self) -> Token:
         """
         Read an identifier or keyword
@@ -119,14 +235,15 @@ class Lexer:
         start_col = self.column
         id_str = ""
 
-        while self.current_char and (
+        while self.current_char() and (
             self.current_char().isalnum() or self.current_char() == "_"
         ):
             id_str += self.current_char()
             self.advance()
 
         token_type = self.KEYWORDS.get(id_str, TokenType.IDENTIFIER)
-        value = id_str if token_type == TokenType.IDENTIFIER else KEYWORD_DEFAULT_VALUE
+        #TODO: it might be better to use None as default value
+        value = id_str if token_type == TokenType.IDENTIFIER else self.KEYWORD_DEFAULT_VALUE
 
         return Token(token_type, value, self.line, start_col)
 
