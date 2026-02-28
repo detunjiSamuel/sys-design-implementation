@@ -1,0 +1,3 @@
+[submodule "z_topic_specific/celery_podbro_example/podbro"]
+	path = z_topic_specific/celery_podbro_example/podbro
+	url = git@github.com:detunjiSamuel/podbro.git

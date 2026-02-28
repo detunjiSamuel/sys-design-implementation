@@ -1,0 +1,12 @@
+[project]
+name = "celery-podbro-example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "celery[sqlalchemy]>=5.6.2",
+    "django>=6.0.2",
+    "django-celery-beat>=2.1.0",
+    "django-celery-results>=2.6.0",
+]
