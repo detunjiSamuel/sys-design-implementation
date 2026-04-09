@@ -1,0 +1,84 @@
+version: "3.9"
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: marketfeed
+      POSTGRES_USER: mf
+      POSTGRES_PASSWORD: mf
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  django:
+    build: .
+    command: daphne -b 0.0.0.0 -p 8000 core.asgi:application
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+
+  celery_worker:
+    build: .
+    command: celery -A core worker -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+
+  celery_beat:
+    build: .
+    command: celery -A core beat -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+
+  streamlit:
+    build: ./dashboard
+    ports:
+      - "8501:8501"
+    depends_on:
+      - django
+
+volumes:
+  pgdata:
