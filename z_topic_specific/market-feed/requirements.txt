@@ -10,3 +10,5 @@ redis==5.0.*
 pandas==2.2.*
 websockets==12.*
 python-decouple==3.8
+openai>=1.30,<2
+requests>=2.31,<3

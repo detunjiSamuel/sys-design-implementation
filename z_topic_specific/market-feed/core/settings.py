@@ -53,9 +53,16 @@ from celery.schedules import crontab  # noqa: E402
 CELERY_BEAT_SCHEDULE = {
     "run-analysis-every-minute": {
         "task": "prices.analysis_tasks.run_all_analysis",
-        "schedule": 60.0,  # seconds — swap for crontab() if you want cron syntax
+        "schedule": 60.0,
+    },
+    "run-sentiment-every-15-minutes": {
+        "task": "prices.sentiment_tasks.run_all_sentiment",
+        "schedule": crontab(minute="*/15"),
     },
 }
+
+# --- OpenAI ---
+OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
 
 # --- Kafka ---
 KAFKA_BOOTSTRAP_SERVERS = config("KAFKA_BOOTSTRAP_SERVERS", default="kafka:9092")

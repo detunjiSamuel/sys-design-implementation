@@ -51,7 +51,31 @@ def fetch_analysis(asset: str) -> dict | None:
     return None
 
 
-# --- Layout placeholders ---
+def fetch_alerts() -> list:
+    try:
+        r = requests.get(f"{API_BASE}/alerts/", timeout=2)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return []
+
+
+def fetch_sentiment(asset: str) -> dict | None:
+    try:
+        r = requests.get(f"{API_BASE}/{asset}/sentiment/", timeout=2)
+        if r.status_code == 200 and r.json():
+            return r.json()[0]
+    except Exception:
+        pass
+    return None
+
+
+def fmt(val, decimals=2):
+    return f"{val:.{decimals}f}" if val is not None else "—"
+
+
+# --- Layout placeholders (price + indicators) ---
 price_placeholder = st.empty()
 col1, col2, col3, col4, col5 = st.columns(5)
 metric_sma20 = col1.empty()
@@ -62,10 +86,58 @@ metric_vol = col5.empty()
 chart_placeholder = st.empty()
 volume_placeholder = st.empty()
 
+st.divider()
 
-def fmt(val, decimals=2):
-    return f"{val:.{decimals}f}" if val is not None else "—"
+# --- Price Alerts section ---
+st.subheader("Price Alerts")
 
+alert_col, form_col = st.columns([2, 1])
+
+with form_col:
+    with st.form("create_alert", clear_on_submit=True):
+        st.caption("New alert")
+        alert_asset = st.selectbox("Asset", ["BTCUSDT", "ETHUSDT"], key="alert_asset")
+        alert_threshold = st.number_input("Threshold (USDT)", min_value=0.0, format="%.2f")
+        alert_direction = st.selectbox("Direction", ["above", "below"])
+        submitted = st.form_submit_button("Create")
+        if submitted and alert_threshold > 0:
+            try:
+                resp = requests.post(
+                    f"{API_BASE}/alerts/",
+                    json={"asset": alert_asset, "threshold": str(alert_threshold), "direction": alert_direction},
+                    timeout=3,
+                )
+                if resp.status_code == 201:
+                    st.success("Alert created.")
+                else:
+                    st.error(f"Error: {resp.text}")
+            except Exception as e:
+                st.error(str(e))
+
+with alert_col:
+    alerts = fetch_alerts()
+    if alerts:
+        for a in alerts:
+            c1, c2 = st.columns([5, 1])
+            direction_icon = "↑" if a["direction"] == "above" else "↓"
+            c1.markdown(
+                f"**{a['asset']}** {direction_icon} `${float(a['threshold']):,.2f}` "
+                f"— *created {a['created_at'][:10]}*"
+            )
+            if c2.button("Delete", key=f"del_{a['id']}"):
+                try:
+                    requests.delete(f"{API_BASE}/alerts/{a['id']}/", timeout=2)
+                    st.rerun()
+                except Exception:
+                    pass
+    else:
+        st.caption("No active alerts.")
+
+st.divider()
+
+# --- Market Sentiment section ---
+st.subheader(f"Market Sentiment — {asset}")
+sentiment_placeholder = st.empty()
 
 # --- Main loop ---
 while True:
@@ -97,7 +169,6 @@ while True:
             line=dict(color="#00b4d8", width=1.5),
         ))
 
-        # SMA overlays if we have enough data
         if analysis and analysis.get("sma_20"):
             ticks["sma_20"] = ticks["price"].rolling(20).mean()
             ticks["sma_50"] = ticks["price"].rolling(50).mean()
@@ -122,7 +193,6 @@ while True:
         )
         chart_placeholder.plotly_chart(fig, use_container_width=True)
 
-        # Volume bar chart
         vol_fig = go.Figure(go.Bar(
             x=ticks["timestamp"], y=ticks["volume"],
             marker_color="#48cae4", name="Volume",
@@ -134,6 +204,14 @@ while True:
             showlegend=False,
         )
         volume_placeholder.plotly_chart(vol_fig, use_container_width=True)
+
+    # Sentiment
+    sentiment = fetch_sentiment(asset)
+    if sentiment:
+        ts = sentiment["timestamp"][:16].replace("T", " ")
+        sentiment_placeholder.info(f"**{ts} UTC** — {sentiment['analysis']}")
+    else:
+        sentiment_placeholder.caption("No sentiment data yet — Celery Beat runs analysis every 15 minutes.")
 
     time.sleep(refresh_interval)
     st.rerun()

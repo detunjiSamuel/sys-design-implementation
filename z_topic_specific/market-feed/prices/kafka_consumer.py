@@ -3,7 +3,6 @@ Celery task: consumes raw_prices from Kafka and broadcasts to Django Channels la
 Also writes each tick to PostgreSQL and caches latest price in Redis.
 """
 import json
-import asyncio
 from datetime import datetime, timezone
 
 import redis as redis_sync
@@ -40,6 +39,42 @@ def _broadcast(channel_layer, asset: str, payload: dict):
         f"prices_{asset}",
         {"type": "price_update", "data": payload},
     )
+
+
+def _check_alerts(channel_layer, asset: str, price: float):
+    """
+    Fire any active alerts whose threshold has been crossed.
+    Deactivates each alert after it fires so it triggers only once.
+    """
+    from prices.models import PriceAlert  # local import avoids circular at module load
+    from prices.ws_consumers.alerts import ALERTS_GROUP
+
+    active = PriceAlert.objects.filter(asset=asset, is_active=True)
+    triggered_ids = []
+
+    for alert in active:
+        threshold = float(alert.threshold)
+        hit = (alert.direction == PriceAlert.ABOVE and price >= threshold) or \
+              (alert.direction == PriceAlert.BELOW and price <= threshold)
+        if hit:
+            triggered_ids.append(alert.id)
+            async_to_sync(channel_layer.group_send)(
+                ALERTS_GROUP,
+                {
+                    "type": "alert_triggered",
+                    "data": {
+                        "alert_id": alert.id,
+                        "asset": asset,
+                        "direction": alert.direction,
+                        "threshold": str(alert.threshold),
+                        "price": price,
+                    },
+                },
+            )
+            logger.info("Alert %d triggered: %s %s %s at %s", alert.id, asset, alert.direction, threshold, price)
+
+    if triggered_ids:
+        PriceAlert.objects.filter(id__in=triggered_ids).update(is_active=False)
 
 
 @shared_task(bind=True, max_retries=None)
@@ -90,6 +125,9 @@ def run_kafka_consumer(self):
 
             # 3. Broadcast via Channels layer to WebSocket clients
             _broadcast(channel_layer, asset, {"asset": asset, "price": price, "timestamp": tick["timestamp"]})
+
+            # 4. Check and fire any matching price alerts
+            _check_alerts(channel_layer, asset, float(price))
 
     except Exception as exc:
         logger.exception("Kafka consumer error: %s", exc)

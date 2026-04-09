@@ -13,6 +13,5 @@ class PriceFeedConsumer(AsyncJsonWebsocketConsumer):
     async def disconnect(self, code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
-    # Called by channel layer when a price update is broadcast
     async def price_update(self, event):
         await self.send_json(event["data"])
