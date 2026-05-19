@@ -47,7 +47,7 @@ Fix: collect dead video IDs in a separate list, remove them after the loop.
 
 ---
 
-### 1.3 — `asyncio.create_task` called inside `start()` without a running loop guarantee
+### 1.3 — `asyncio.create_task` called inside `start()` without a running loop guarantee 
 
 **File:** `YTComments/CommentCollector.py`, line 13
 
@@ -208,7 +208,6 @@ This means:
 - Importing the module tries to connect to Kafka immediately, even in tests.
 - The address is hardcoded (see 2.2).
 - The producer cannot be replaced or configured by callers.
-
 `KafkaProducer` should be constructed in `CommentsCollector.__init__` and the bootstrap servers read from config.
 
 ### 4.2 — TODO comment confirms the producer should be injected — it never was
