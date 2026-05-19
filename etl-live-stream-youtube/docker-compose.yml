@@ -6,7 +6,6 @@
 #
 # I hope this helps someone out there! :)
 
-version: '3'
 networks:
   local-kafka:
     driver: bridge
