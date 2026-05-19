@@ -18,3 +18,13 @@ dependencies = [
     "yt-dlp>=2024.1.0",
     "opencv-python-headless>=4.13.0.92",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-mock>=3.12",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

@@ -19,6 +19,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// formatSSEMessage serialises a MongoDB document as a Server-Sent Events data frame.
+func formatSSEMessage(doc bson.M) (string, error) {
+	data, err := json.Marshal(doc)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("data: %s\n\n", data), nil
+}
+
 func requestLogger(c *fiber.Ctx) error {
 	start := time.Now()
 	err := c.Next()
@@ -113,13 +122,11 @@ func main() {
 				if change["operationType"] == "insert" {
 					doc := change["fullDocument"].(bson.M)
 
-					data, err := json.Marshal(doc)
+					message, err := formatSSEMessage(doc)
 					if err != nil {
 						slog.Error("document_encode_error", "error", err)
 						continue
 					}
-
-					message := fmt.Sprintf("data: %s\n\n", data)
 
 					if _, err := w.Write([]byte(message)); err != nil {
 						slog.Error("stream_write_error", "error", err)

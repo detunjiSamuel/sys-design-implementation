@@ -63,18 +63,19 @@ class CommentsCollector:
                 comments = comment_instance.get_live_chat_messages()
                 if comments and 'items' in comments:
                     items = comments['items']
-                    data = [
-                        {
-                            'comment': i['snippet']['displayMessage'],
-                            'profile_image': i['authorDetails']['profileImageUrl'],
-                            'author_name': i['authorDetails']['displayName'],
-                            'published_at': i['snippet']['publishedAt']
+                    if items:
+                        data = [
+                            {
+                                'comment': i['snippet']['displayMessage'],
+                                'profile_image': i['authorDetails']['profileImageUrl'],
+                                'author_name': i['authorDetails']['displayName'],
+                                'published_at': i['snippet']['publishedAt']
 
-                        } for i in items]
+                            } for i in items]
 
-                    log.info("comments_fetched", video_id=comment_instance.video_id, count=len(items))
-                    self.producer.send(f"comments_{comment_instance.video_id}", value=data)
-                    self.producer.flush()
+                        log.info("comments_fetched", video_id=comment_instance.video_id, count=len(items))
+                        self.producer.send(f"comments_{comment_instance.video_id}", value=data)
+                        self.producer.flush()
 
                 await asyncio.sleep(2)  # notuced some rate limiting from youtube api
 
