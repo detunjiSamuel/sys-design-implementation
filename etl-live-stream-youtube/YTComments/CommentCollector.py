@@ -16,10 +16,11 @@ class CommentsCollector:
         self.active_videos = {}  # video_id : Comment instance
         self.running = False
         self.semaphore = asyncio.Semaphore(max_concurrent_tasks)
+        self._loop_task = None
 
     async def start(self):
         self.running = True
-        asyncio.create_task(self._collection_loop())
+        self._loop_task = asyncio.create_task(self._collection_loop())
 
     async def add_video(self, video_id):
         self.active_videos[video_id] = Comment(video_id)
