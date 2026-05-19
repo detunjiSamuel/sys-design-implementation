@@ -22,7 +22,7 @@ video_id = ""  # temp id for me to work with
 try:
     stream_url = (
         subprocess.check_output(
-            ["youtube-dl", "-f", "best", "-g",
+            ["yt-dlp", "-f", "best", "-g",
                 f"https://www.youtube.com/watch?v={video_id}"]
         ).decode("utf-8").strip()
     )
