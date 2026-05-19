@@ -10,9 +10,8 @@ from logging_config import configure_logging
 log = structlog.get_logger(__name__)
 
 
-# TODOD: make changes to to collector to use asyncio without semaphre:
-# reason : they do not really share resors
-# TODO : update requests to aihttp reason: there is no reason to block the application while waiting for network response
+# Tracked: remove semaphore from CommentsCollector → issue #1
+# Tracked: migrate HTTP calls from requests to aiohttp → issue #2
 
 async def run():
     video_ids = [v.strip() for v in os.getenv("VIDEO_IDS", "").split(",") if v.strip()]

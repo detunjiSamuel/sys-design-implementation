@@ -1,0 +1,90 @@
+name: etl-live-stream-youtube CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "etl-live-stream-youtube/**"
+      - ".github/workflows/etl-live-stream-youtube.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "etl-live-stream-youtube/**"
+      - ".github/workflows/etl-live-stream-youtube.yml"
+
+jobs:
+  etl-python-lint:
+    name: etl-live-stream-youtube / Python lint & type-check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: etl-live-stream-youtube
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Lint with ruff
+        run: uv run ruff check .
+
+      - name: Type-check with mypy
+        run: uv run mypy .
+
+  etl-python-test:
+    name: etl-live-stream-youtube / Python tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: etl-live-stream-youtube
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Run pytest
+        run: uv run pytest
+
+  etl-go-build-test:
+    name: etl-live-stream-youtube / Go build & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: etl-live-stream-youtube/server
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test
+        run: go test ./...

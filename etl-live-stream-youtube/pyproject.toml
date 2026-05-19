@@ -24,7 +24,19 @@ dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
     "pytest-mock>=3.12",
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
