@@ -50,7 +50,10 @@ class CommentsCollector:
             for video_id in dead_video_ids:
                 del self.active_videos[video_id]
             if tasks:
-                await asyncio.gather(*tasks, return_exceptions=True)
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                for result in results:
+                    if isinstance(result, BaseException):
+                        log.error("video_task_failed", error=str(result), exc_type=type(result).__name__)
             await asyncio.sleep(3)
 
     async def _collect_video_comments(self, comment_instance):
