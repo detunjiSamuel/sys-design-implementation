@@ -1,6 +1,6 @@
 # etl-live-stream-youtube
 
-**Real-time sentiment analysis pipeline for YouTube live-chat comments — built to learn stream processing, Kafka, and SSE. Not production-hardened.**
+**Real-time sentiment analysis pipeline for YouTube live-chat comments — built to learn stream processing, Kafka, and SSE. Not for prod.**
 
 ---
 
@@ -16,7 +16,8 @@ Infrastructure: **Kafka + Zookeeper** (message bus), **MongoDB** (store + change
 
 ---
 
-## How to run
+<details>
+<summary><strong>How to run</strong>  click to expand (just ask an AI, honestly)</summary>
 
 **Prerequisites:** Docker, a YouTube Data API v3 key, video IDs of active live streams.
 
@@ -48,9 +49,17 @@ DB_NAME=youtube_sentiment
 COLLECTION_NAME=comments
 ```
 
+</details>
+
 ---
 
 ## Architecture — detailed notes (for me , not you)
+
+### How to describe it in one paragraph
+
+"end-to-end streaming pipeline that takes YouTube live-chat comments and scores their sentiment in near-real time. A Python service polls the YouTube Data API and publishes each comment as a JSON message to a Kafka topic — one topic per video. A Spark Structured Streaming job consumes those topics, runs VADER sentiment analysis on each micro-batch, and writes the enriched documents to MongoDB. On the serving side, a Go HTTP server opens a MongoDB change stream so it gets notified the instant a new document lands, and it forwards that as a Server-Sent Event to whatever browser is connected. The main architectural choices were: Kafka to decouple the collector from the processor so either can restart without losing data; Spark for the processing layer because I wanted hands-on experience with its streaming API; MongoDB because its change stream lets me avoid polling and keep the push model all the way to the client; and Go for the SSE server because goroutines are cheap for many concurrent long-lived connections."
+
+---
 
 ### Data flow
 
