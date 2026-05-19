@@ -1,14 +1,14 @@
-import cv2
-import socketio
 import base64
-import eventlet
-from eventlet import wsgi
+import os
 import subprocess
 import sys
 
+import cv2
+import eventlet
+import socketio
 import structlog
 from dotenv import load_dotenv
-import os
+from eventlet import wsgi
 
 from logging_config import configure_logging
 

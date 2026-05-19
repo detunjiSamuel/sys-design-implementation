@@ -4,9 +4,10 @@ The Kafka producer is injected as a mock; no real broker is needed.
 asyncio.sleep is patched to keep tests instantaneous.
 """
 
-import asyncio
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from YTComments.CommentCollector import CommentsCollector
 
 
@@ -23,11 +24,15 @@ def collector(mock_producer):
 def _comment_instance(video_id="vid1", items=None):
     inst = MagicMock()
     inst.video_id = video_id
-    inst.get_live_chat_messages.return_value = {"items": items} if items is not None else {"items": []}
+    inst.get_live_chat_messages.return_value = (
+        {"items": items} if items is not None else {"items": []}
+    )
     return inst
 
 
-def _yt_item(message="Hello!", author="Alice", image="http://img", published="2024-01-01T00:00:00Z"):
+def _yt_item(
+    message="Hello!", author="Alice", image="http://img", published="2024-01-01T00:00:00Z"
+):
     return {
         "snippet": {"displayMessage": message, "publishedAt": published},
         "authorDetails": {"displayName": author, "profileImageUrl": image},

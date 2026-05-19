@@ -62,7 +62,8 @@ class Comment:
     def get_live_chat_id(self):
         stream_details = self.get_stream_details()
         if 'items' in stream_details and len(stream_details['items']) > 0:
-            self.live_chat_id = stream_details['items'][0]['liveStreamingDetails'].get('activeLiveChatId')
+            live_details = stream_details['items'][0]['liveStreamingDetails']
+            self.live_chat_id = live_details.get('activeLiveChatId')
             if self.live_chat_id:
                 self.is_live = True
         return self.live_chat_id

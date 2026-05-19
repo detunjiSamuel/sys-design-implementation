@@ -3,14 +3,8 @@ import os
 import structlog
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from pymongo.errors import ConnectionFailure
-from pyspark.sql.types import (
-    FloatType,
-    StructType,
-    StructField,
-    StringType,
-    TimestampType
-)
 from pyspark.sql.functions import col, from_json
+from pyspark.sql.types import StringType, StructField, StructType, TimestampType
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 log = structlog.get_logger(__name__)
@@ -117,13 +111,28 @@ class SentimentProcessor:
 
             try:
                 self._insert_many(processed_comments)
-                log.info("batch_processed", video_id=self.video_id, batch_id=batch_id, comments_count=len(processed_comments))
+                log.info(
+                    "batch_processed",
+                    video_id=self.video_id,
+                    batch_id=batch_id,
+                    comments_count=len(processed_comments),
+                )
             except Exception as e:
-                log.error("batch_insert_failed", video_id=self.video_id, batch_id=batch_id, error=str(e))
+                log.error(
+                    "batch_insert_failed",
+                    video_id=self.video_id,
+                    batch_id=batch_id,
+                    error=str(e),
+                )
                 self._send_to_dead_letter(processed_comments, batch_id)
 
         except Exception as e:
-            log.error("batch_processing_error", video_id=self.video_id, batch_id=batch_id, error=str(e))
+            log.error(
+                "batch_processing_error",
+                video_id=self.video_id,
+                batch_id=batch_id,
+                error=str(e),
+            )
 
     def start_processing(self):
         """Start processing the video's comment stream"""
@@ -140,7 +149,10 @@ class SentimentProcessor:
             stream_df = (
                 self.spark.readStream
                 .format("kafka")
-                .option("kafka.bootstrap.servers", os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"))
+                .option(
+                    "kafka.bootstrap.servers",
+                    os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
+                )
                 .option("subscribe", f"comments_{self.video_id}")
                 .option("startingOffsets", "latest")
                 .load()

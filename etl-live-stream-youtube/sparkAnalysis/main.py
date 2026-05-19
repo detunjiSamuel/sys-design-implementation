@@ -5,12 +5,13 @@ and performs sentiment analysis.
 import os
 import time
 
+import nltk
 import structlog
 from dotenv import load_dotenv
 
-from .SentimentCollector import SentimentCollector
 from logging_config import configure_logging
-import nltk
+
+from .SentimentCollector import SentimentCollector
 
 log = structlog.get_logger(__name__)
 

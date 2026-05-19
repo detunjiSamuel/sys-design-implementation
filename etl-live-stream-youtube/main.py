@@ -26,7 +26,6 @@ Goal :
 
 import structlog
 
-from YTComments.main import main as comments_main
 from sparkAnalysis.main import main as spark_main
 
 log = structlog.get_logger(__name__)

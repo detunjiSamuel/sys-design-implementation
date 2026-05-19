@@ -3,8 +3,10 @@ Tests for Comment.get_live_chat_id — Priority 3.
 All HTTP calls are mocked; no real YouTube API is needed.
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+
 from YTComments.Comment import Comment, YouTubeAPIError
 
 

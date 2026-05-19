@@ -4,8 +4,8 @@ import os
 import structlog
 from dotenv import load_dotenv
 
-from YTComments.CommentCollector import CommentsCollector
 from logging_config import configure_logging
+from YTComments.CommentCollector import CommentsCollector
 
 log = structlog.get_logger(__name__)
 

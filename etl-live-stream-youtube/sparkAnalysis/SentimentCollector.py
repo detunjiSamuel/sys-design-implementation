@@ -3,12 +3,11 @@ Real-time sentiment analysis service for processing YouTube comments using Spark
 Kafka, and MongoDB.
 """
 import os
-from typing import Dict
 
 import structlog
-from pyspark.sql import SparkSession
 from pymongo import MongoClient
 from pymongo.collection import Collection
+from pyspark.sql import SparkSession
 
 from .SentimentProcessor import SentimentProcessor
 
@@ -37,7 +36,7 @@ class SentimentCollector:
         self.base_collection = os.getenv("COLLECTION_NAME", "comments")
 
         # Store video processors
-        self.video_processors: Dict[str, SentimentProcessor] = {}
+        self.video_processors: dict[str, SentimentProcessor] = {}
 
         log.info("sentiment_processor_initialized")
 

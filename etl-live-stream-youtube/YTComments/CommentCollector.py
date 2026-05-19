@@ -3,8 +3,9 @@ import json
 import os
 
 import structlog
-from YTComments.Comment import Comment, YouTubeAPIError
 from kafka import KafkaProducer
+
+from YTComments.Comment import Comment, YouTubeAPIError
 
 log = structlog.get_logger(__name__)
 
@@ -53,7 +54,11 @@ class CommentsCollector:
                 results = await asyncio.gather(*tasks, return_exceptions=True)
                 for result in results:
                     if isinstance(result, BaseException):
-                        log.error("video_task_failed", error=str(result), exc_type=type(result).__name__)
+                        log.error(
+                            "video_task_failed",
+                            error=str(result),
+                            exc_type=type(result).__name__,
+                        )
             await asyncio.sleep(3)
 
     async def _collect_video_comments(self, comment_instance):
@@ -73,11 +78,19 @@ class CommentsCollector:
 
                             } for i in items]
 
-                        log.info("comments_fetched", video_id=comment_instance.video_id, count=len(items))
+                        log.info(
+                            "comments_fetched",
+                            video_id=comment_instance.video_id,
+                            count=len(items),
+                        )
                         self.producer.send(f"comments_{comment_instance.video_id}", value=data)
                         self.producer.flush()
 
                 await asyncio.sleep(2)  # notuced some rate limiting from youtube api
 
             except Exception as e:
-                log.error("comment_collection_failed", video_id=comment_instance.video_id, error=str(e))
+                log.error(
+                    "comment_collection_failed",
+                    video_id=comment_instance.video_id,
+                    error=str(e),
+                )

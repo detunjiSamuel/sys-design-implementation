@@ -5,8 +5,10 @@ Tests for SentimentProcessor:
   Priority 5 — process_batch (mock MongoDB collection)
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from sparkAnalysis.SentimentProcessor import SentimentProcessor
 
 
