@@ -18,19 +18,21 @@ log = structlog.get_logger(__name__)
 
 class SentimentCollector:
     def __init__(self):
-        # Initialize Spark session
+        mongo_uri = os.getenv("MONGO_URI")
+        if not mongo_uri:
+            raise ValueError("MONGO_URI environment variable is not set")
+
         self.spark = (
             SparkSession.builder
             .appName("YouTubeCommentsSentimentAnalysis")
             .config("spark.streaming.stopGracefullyOnShutdown", True)
-            .config("spark.mongodb.output.uri", os.getenv("MONGO_URI"))
+            .config("spark.mongodb.output.uri", mongo_uri)
             .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.13:3.5.0")
             .config("spark.sql.streaming.forceDeleteTempCheckpointLocation", True)
             .getOrCreate()
         )
 
-        # Initialize MongoDB client
-        self.mongo_client = MongoClient(os.getenv("MONGO_URI"))
+        self.mongo_client = MongoClient(mongo_uri)
         self.db = self.mongo_client[os.getenv("DB_NAME", "youtube_sentiment")]
         self.base_collection = os.getenv("COLLECTION_NAME", "comments")
 
