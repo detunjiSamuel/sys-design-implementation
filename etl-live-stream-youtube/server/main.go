@@ -56,6 +56,13 @@ func main() {
 		slog.Error("mongodb_connect_error", "error", err)
 		os.Exit(1)
 	}
+
+	pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := client.Ping(pingCtx, nil); err != nil {
+		slog.Error("mongodb_ping_error", "error", err)
+		os.Exit(1)
+	}
 	slog.Info("mongodb_connected")
 
 	collection := client.Database(DB_NAME).Collection(COLLECTION_NAME)
