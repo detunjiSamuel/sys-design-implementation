@@ -1,13 +1,13 @@
 import requests
 import os
 
-#TODO: pass API_KEY in data class from env variable
-
-API_KEY = os.getenv("YT_API_KEY")
-
 
 class Comment:
     def __init__(self , video_id):
+        api_key = os.getenv("YT_API_KEY")
+        if not api_key:
+            raise ValueError("YT_API_KEY environment variable is not set")
+        self.api_key = api_key
         self.video_id = video_id
         self.live_chat_id = None
         self.next_page_token = None
@@ -16,10 +16,10 @@ class Comment:
         self.get_live_chat_id()
 
     def _get_live_chat_id_url(self):
-        return f'https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id={self.video_id}&key={API_KEY}'
+        return f'https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id={self.video_id}&key={self.api_key}'
 
     def _get_live_chat_messages_url(self):
-        return f"https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId={self.live_chat_id}&part=snippet,authorDetails&key={API_KEY}"
+        return f"https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId={self.live_chat_id}&part=snippet,authorDetails&key={self.api_key}"
 
 
     def get_stream_details(self):
