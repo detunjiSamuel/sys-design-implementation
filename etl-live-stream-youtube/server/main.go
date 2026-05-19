@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -141,8 +143,28 @@ func main() {
 		return nil
 	})
 
-	if err := app.Listen(":3000"); err != nil {
-		slog.Error("server_listen_error", "error", err)
-		os.Exit(1)
+	go func() {
+		if err := app.Listen(":3000"); err != nil {
+			slog.Error("server_listen_error", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+
+	slog.Info("server_shutting_down")
+
+	if err := app.Shutdown(); err != nil {
+		slog.Error("server_shutdown_error", "error", err)
 	}
+
+	disconnectCtx, disconnectCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer disconnectCancel()
+	if err := client.Disconnect(disconnectCtx); err != nil {
+		slog.Error("mongodb_disconnect_error", "error", err)
+	}
+
+	slog.Info("server_stopped")
 }
