@@ -15,7 +15,7 @@ class YouTubeAPIError(Exception):
         self.status_code = status_code
 
 
-def _is_retriable(exc: Exception) -> bool:
+def _is_retriable(exc: BaseException) -> bool:
     return isinstance(exc, YouTubeAPIError) and exc.status_code in _RETRIABLE_STATUSES
 
 

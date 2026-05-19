@@ -31,7 +31,7 @@ class SentimentCollector:
             .getOrCreate()
         )
 
-        self.mongo_client = MongoClient(mongo_uri)
+        self.mongo_client: MongoClient = MongoClient(mongo_uri)
         self.db = self.mongo_client[os.getenv("DB_NAME", "youtube_sentiment")]
         self.base_collection = os.getenv("COLLECTION_NAME", "comments")
 
