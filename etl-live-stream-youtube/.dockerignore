@@ -1,0 +1,9 @@
+.venv/
+.idea/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.git/
+server/
+uv.lock.bak
