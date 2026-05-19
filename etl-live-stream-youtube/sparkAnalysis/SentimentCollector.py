@@ -19,16 +19,16 @@ class SentimentCollector:
             SparkSession.builder
             .appName("YouTubeCommentsSentimentAnalysis")
             .config("spark.streaming.stopGracefullyOnShutdown", True)
-            .config("spark.mongodb.output.uri", os.getenv("MONGODB_URI"))
+            .config("spark.mongodb.output.uri", os.getenv("MONGO_URI"))
             .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.13:3.5.0")
             .config("spark.sql.streaming.forceDeleteTempCheckpointLocation", True)
             .getOrCreate()
         )
 
         # Initialize MongoDB client
-        self.mongo_client = MongoClient(os.getenv("MONGODB_URI"))
-        self.db = self.mongo_client[os.getenv("DATABASE", "youtube_sentiment")]
-        self.base_collection = os.getenv("COLLECTION", "comments")
+        self.mongo_client = MongoClient(os.getenv("MONGO_URI"))
+        self.db = self.mongo_client[os.getenv("DB_NAME", "youtube_sentiment")]
+        self.base_collection = os.getenv("COLLECTION_NAME", "comments")
 
         # Store video processors
         self.video_processors: Dict[str, SentimentProcessor] = {}
