@@ -44,7 +44,7 @@ class SentimentCollector:
         collection_name = f"{self.base_collection}_{video_id}"
         return self.db[collection_name]
 
-    async def process_video_stream(self, video_id: str):
+    def process_video_stream(self, video_id: str):
         """Start sentiment analysis for a specific video stream"""
         if video_id in self.video_processors:
             log.warning("stream_already_exists", video_id=video_id)
@@ -54,25 +54,25 @@ class SentimentCollector:
             collection = self.get_collection(video_id)
             processor = SentimentProcessor(video_id, self.spark, collection)
             self.video_processors[video_id] = processor
-            await processor.start_processing()
+            processor.start_processing()
 
         except Exception as e:
             log.error("video_processing_error", video_id=video_id, error=str(e))
-            await self.stop_video_stream(video_id)
+            self.stop_video_stream(video_id)
             raise
 
-    async def stop_video_stream(self, video_id: str):
+    def stop_video_stream(self, video_id: str):
         """Stop sentiment analysis for a specific video stream"""
         processor = self.video_processors.get(video_id)
         if processor:
-            await processor.stop_processing()
+            processor.stop_processing()
             del self.video_processors[video_id]
             log.info("video_stream_stopped", video_id=video_id)
 
-    async def stop_all_streams(self):
+    def stop_all_streams(self):
         """Stop all video streams and cleanup resources"""
         for video_id in list(self.video_processors.keys()):
-            await self.stop_video_stream(video_id)
+            self.stop_video_stream(video_id)
 
         if self.spark:
             self.spark.stop()

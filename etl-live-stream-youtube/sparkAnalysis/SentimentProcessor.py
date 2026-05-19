@@ -71,7 +71,7 @@ class SentimentProcessor:
         except Exception as e:
             log.error("batch_processing_error", video_id=self.video_id, batch_id=batch_id, error=str(e))
 
-    async def start_processing(self):
+    def start_processing(self):
         """Start processing the video's comment stream"""
         try:
             # Define schema for incoming comments
@@ -112,7 +112,7 @@ class SentimentProcessor:
             log.error("stream_start_error", video_id=self.video_id, error=str(e))
             raise
 
-    async def stop_processing(self):
+    def stop_processing(self):
         """Stop processing the video's comment stream"""
         if self.streaming_query:
             self.streaming_query.stop()
