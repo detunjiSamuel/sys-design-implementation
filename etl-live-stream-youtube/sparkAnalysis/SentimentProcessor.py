@@ -46,7 +46,7 @@ class SentimentProcessor:
             processed_comments = []
             for comment in comments:
 
-                sentiment_scores = self.analyze_sentiment(comment.snippet.displayMessage)
+                sentiment_scores = self.analyze_sentiment(comment.comment)
 
                 processed_comment = {
                     "video_id": self.video_id,
