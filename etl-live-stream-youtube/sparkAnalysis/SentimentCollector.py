@@ -4,15 +4,11 @@ Kafka, and MongoDB.
 """
 import os
 from typing import Dict
-from dotenv import load_dotenv
 from pyspark.sql import SparkSession
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
 from .SentimentProcessor import SentimentProcessor
-
-# Load environment variables
-load_dotenv()
 
 
 

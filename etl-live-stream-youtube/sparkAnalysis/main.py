@@ -3,6 +3,7 @@ Entry point for running the Spark Analysis service that processes YouTube commen
 and performs sentiment analysis.
 """
 import asyncio
+import os
 from dotenv import load_dotenv
 
 from .SentimentCollector import SentimentCollector
@@ -18,8 +19,9 @@ async def run():
     # Initialize the sentiment processor
     collector = SentimentCollector()
 
-    # List of video IDs to analyze (should match the ones in YTComments)
-    video_ids = ["JQDaaHJ9u1E"]
+    video_ids = [v.strip() for v in os.getenv("VIDEO_IDS", "").split(",") if v.strip()]
+    if not video_ids:
+        raise ValueError("VIDEO_IDS environment variable is not set or empty")
 
     # Start processing for each video
     for video_id in video_ids:

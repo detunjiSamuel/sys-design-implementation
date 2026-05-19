@@ -1,7 +1,7 @@
-
-
 import asyncio
+import os
 
+from dotenv import load_dotenv
 from YTComments.CommentCollector import CommentsCollector
 
 
@@ -10,7 +10,9 @@ from YTComments.CommentCollector import CommentsCollector
 # TODO : update requests to aihttp reason: there is no reason to block the application while waiting for network response
 
 async def run():
-    video_ids = ["JQDaaHJ9u1E"]
+    video_ids = [v.strip() for v in os.getenv("VIDEO_IDS", "").split(",") if v.strip()]
+    if not video_ids:
+        raise ValueError("VIDEO_IDS environment variable is not set or empty")
 
     collector = CommentsCollector(max_concurrent_tasks=2)
     for vid in video_ids:
@@ -29,6 +31,7 @@ async def run():
         print("\nShutting down gracefully...")
 
 def main():
+    load_dotenv()
     print("Hello from etl-live-stream-youtube!")
     asyncio.run(run())
 
