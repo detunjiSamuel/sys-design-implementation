@@ -3,7 +3,7 @@ import json
 import os
 
 import structlog
-from YTComments.Comment import Comment
+from YTComments.Comment import Comment, YouTubeAPIError
 from kafka import KafkaProducer
 
 log = structlog.get_logger(__name__)
@@ -26,7 +26,10 @@ class CommentsCollector:
         self._loop_task = asyncio.create_task(self._collection_loop())
 
     async def add_video(self, video_id):
-        self.active_videos[video_id] = Comment(video_id)
+        try:
+            self.active_videos[video_id] = Comment(video_id)
+        except YouTubeAPIError as e:
+            log.error("add_video_api_error", video_id=video_id, error=str(e))
 
     async def _collection_loop(self):
 

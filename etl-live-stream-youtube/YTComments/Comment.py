@@ -6,6 +6,10 @@ import structlog
 log = structlog.get_logger(__name__)
 
 
+class YouTubeAPIError(Exception):
+    pass
+
+
 class Comment:
     def __init__(self , video_id):
         api_key = os.getenv("YT_API_KEY")
@@ -28,23 +32,18 @@ class Comment:
 
     def get_stream_details(self):
         url = self._get_live_chat_id_url()
-        res = requests.get(url , headers={
-            "Connection": "close"
-        })
-        if res.status_code ==  200:
+        res = requests.get(url, headers={"Connection": "close"})
+        if res.status_code == 200:
             return res.json()
-        else:
-            log.error("get_stream_details_error", status_code=res.status_code, response=res.text)
-            return None
+        raise YouTubeAPIError(f"status={res.status_code} body={res.text}")
 
     def get_live_chat_id(self):
         stream_details = self.get_stream_details()
-        if stream_details and 'items' in stream_details and len(stream_details['items']) > 0:
-            self.live_chat_id = stream_details['items'][0]['liveStreamingDetails'].get('activeLiveChatId', None)
+        if 'items' in stream_details and len(stream_details['items']) > 0:
+            self.live_chat_id = stream_details['items'][0]['liveStreamingDetails'].get('activeLiveChatId')
             if self.live_chat_id:
                 self.is_live = True
-            return self.live_chat_id
-        return None
+        return self.live_chat_id
 
     def get_live_chat_messages(self):
         url = self._get_live_chat_messages_url()
