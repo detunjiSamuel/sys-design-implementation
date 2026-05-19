@@ -11,6 +11,9 @@ networks:
   local-kafka:
     driver: bridge
 
+volumes:
+  mongodb-data:
+
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.0.1
@@ -59,8 +62,21 @@ services:
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=broker:9093
       - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
   spark:
-    image: bitnami/spark:latest
+    image: bitnami/spark:3.5.3
+    networks:
+      - local-kafka
     environment:
       SPARK_MODE: master
     ports:
       - "8080:8080"
+
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    networks:
+      - local-kafka
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    restart: unless-stopped
