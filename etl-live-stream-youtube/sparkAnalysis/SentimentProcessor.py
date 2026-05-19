@@ -65,7 +65,7 @@ class SentimentProcessor:
                 print(
                     "batch_processed",
                     f"video_id={self.video_id}",
-                    f"batch_id={batch_id}"
+                    f"batch_id={batch_id}",
                     f"comments_count={len(processed_comments)}"
                 )
 
@@ -73,7 +73,8 @@ class SentimentProcessor:
             print(
                 "batch_processing_error",
                 f"video_id={self.video_id}",
-                f"batch_id={batch_id}"
+                f"batch_id={batch_id}",
+                f"error={e}"
             )
 
     async def start_processing(self):
