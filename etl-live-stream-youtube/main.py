@@ -24,12 +24,16 @@ Goal :
 """
 
 
+import structlog
+
 from YTComments.main import main as comments_main
-from sparkAnalysis.main import  main as spark_main
+from sparkAnalysis.main import main as spark_main
+
+log = structlog.get_logger(__name__)
 
 
 def main():
-    print("Hello from etl-live-stream-youtube!")
+    log.info("service_starting")
 
 
 if __name__ == "__main__":

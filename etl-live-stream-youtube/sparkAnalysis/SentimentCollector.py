@@ -4,11 +4,15 @@ Kafka, and MongoDB.
 """
 import os
 from typing import Dict
+
+import structlog
 from pyspark.sql import SparkSession
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
 from .SentimentProcessor import SentimentProcessor
+
+log = structlog.get_logger(__name__)
 
 
 
@@ -33,7 +37,7 @@ class SentimentCollector:
         # Store video processors
         self.video_processors: Dict[str, SentimentProcessor] = {}
 
-        print("sentiment_processor_initialized")
+        log.info("sentiment_processor_initialized")
 
     def get_collection(self, video_id: str) -> Collection:
         """Get or create MongoDB collection for a specific video"""
@@ -43,7 +47,7 @@ class SentimentCollector:
     async def process_video_stream(self, video_id: str):
         """Start sentiment analysis for a specific video stream"""
         if video_id in self.video_processors:
-            print("stream_already_exists:",video_id)
+            log.warning("stream_already_exists", video_id=video_id)
             return
 
         try:
@@ -53,7 +57,7 @@ class SentimentCollector:
             await processor.start_processing()
 
         except Exception as e:
-            print("video_processing_error",e)
+            log.error("video_processing_error", video_id=video_id, error=str(e))
             await self.stop_video_stream(video_id)
             raise
 
@@ -63,7 +67,7 @@ class SentimentCollector:
         if processor:
             await processor.stop_processing()
             del self.video_processors[video_id]
-            print("video_stream_stopped",video_id)
+            log.info("video_stream_stopped", video_id=video_id)
 
     async def stop_all_streams(self):
         """Stop all video streams and cleanup resources"""
@@ -76,4 +80,4 @@ class SentimentCollector:
         if self.mongo_client:
             self.mongo_client.close()
 
-        print("all_streams_stopped")
+        log.info("all_streams_stopped")

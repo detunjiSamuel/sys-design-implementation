@@ -6,12 +6,16 @@ from eventlet import wsgi
 import subprocess
 import sys
 
-
+import structlog
 from dotenv import load_dotenv
 import os
 
+from logging_config import configure_logging
 
 load_dotenv()
+configure_logging()
+
+log = structlog.get_logger(__name__)
 
 
 sio = socketio.Server(cors_allowed_origins='*')
@@ -27,7 +31,7 @@ try:
         ).decode("utf-8").strip()
     )
 except subprocess.CalledProcessError as e:
-    print("Error fetching stream URL:", e)
+    log.error("stream_url_fetch_error", error=str(e))
     sys.exit(1)
 
 
@@ -41,7 +45,7 @@ def generate_frames():
     cap = cv2.VideoCapture(stream_url)
 
     if not cap.isOpened():
-        print("Error: Could not open video stream.")
+        log.error("video_stream_open_error")
         streaming_started = False
         return
 
@@ -63,7 +67,7 @@ def generate_frames():
 
 @sio.event
 def connect(sid, environ):
-    print('Client connected:', sid)
+    log.info("client_connected", sid=sid)
     global streaming_started
     if not streaming_started:
         streaming_started = True
@@ -72,7 +76,7 @@ def connect(sid, environ):
 
 @sio.event
 def disconnect(sid):
-    print('Client disconnected:', sid)
+    log.info("client_disconnected", sid=sid)
 
 
 if __name__ == '__main__':

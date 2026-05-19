@@ -1,8 +1,13 @@
 import asyncio
 import os
 
+import structlog
 from dotenv import load_dotenv
+
 from YTComments.CommentCollector import CommentsCollector
+from logging_config import configure_logging
+
+log = structlog.get_logger(__name__)
 
 
 # TODOD: make changes to to collector to use asyncio without semaphre:
@@ -16,7 +21,7 @@ async def run():
 
     collector = CommentsCollector(max_concurrent_tasks=2)
     for vid in video_ids:
-        print("Adding video: " , vid)
+        log.info("adding_video", video_id=vid)
         await collector.add_video(vid)
         await asyncio.sleep(3)
 
@@ -28,11 +33,12 @@ async def run():
             await asyncio.sleep(1)
     except KeyboardInterrupt:
         collector.running = False
-        print("\nShutting down gracefully...")
+        log.info("shutdown")
 
 def main():
     load_dotenv()
-    print("Hello from etl-live-stream-youtube!")
+    configure_logging()
+    log.info("service_starting")
     asyncio.run(run())
 
 

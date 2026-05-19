@@ -4,13 +4,15 @@ and performs sentiment analysis.
 """
 import asyncio
 import os
+
+import structlog
 from dotenv import load_dotenv
 
 from .SentimentCollector import SentimentCollector
+from logging_config import configure_logging
 import nltk
 
-# Load environment variables
-load_dotenv()
+log = structlog.get_logger(__name__)
 
 # Download VADER lexicon for sentiment analysis : nltk caches it locally
 nltk.download("vader_lexicon")
@@ -25,7 +27,7 @@ async def run():
 
     # Start processing for each video
     for video_id in video_ids:
-        print(f"Starting sentiment analysis for video: {video_id}")
+        log.info("starting_video_analysis", video_id=video_id)
         await collector.process_video_stream(video_id)
         await asyncio.sleep(2)  # Small delay between starting each stream
 
@@ -34,11 +36,13 @@ async def run():
         while True:
             await asyncio.sleep(1)
     except KeyboardInterrupt:
-        print("\nShutting down sentiment analysis gracefully...")
+        log.info("shutdown")
         await collector.stop_all_streams()
 
 def main():
-    print("Starting Spark Sentiment Analysis Service...")
+    load_dotenv()
+    configure_logging()
+    log.info("service_starting")
     asyncio.run(run())
 
 if __name__ == "__main__":

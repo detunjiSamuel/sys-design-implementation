@@ -1,5 +1,6 @@
 import os
 
+import structlog
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from pyspark.sql.types import (
     FloatType,
@@ -8,8 +9,9 @@ from pyspark.sql.types import (
     StringType,
     TimestampType
 )
-
 from pyspark.sql.functions import col, from_json
+
+log = structlog.get_logger(__name__)
 
 class SentimentProcessor:
     def __init__(self, video_id, spark, mongodb_collection):
@@ -64,20 +66,10 @@ class SentimentProcessor:
 
             if processed_comments:
                 self.collection.insert_many(processed_comments)
-                print(
-                    "batch_processed",
-                    f"video_id={self.video_id}",
-                    f"batch_id={batch_id}",
-                    f"comments_count={len(processed_comments)}"
-                )
+                log.info("batch_processed", video_id=self.video_id, batch_id=batch_id, comments_count=len(processed_comments))
 
         except Exception as e:
-            print(
-                "batch_processing_error",
-                f"video_id={self.video_id}",
-                f"batch_id={batch_id}",
-                f"error={e}"
-            )
+            log.error("batch_processing_error", video_id=self.video_id, batch_id=batch_id, error=str(e))
 
     async def start_processing(self):
         """Start processing the video's comment stream"""
@@ -114,14 +106,14 @@ class SentimentProcessor:
                 .start()
             )
 
-            print("stream_started",self.video_id)
+            log.info("stream_started", video_id=self.video_id)
 
         except Exception as e:
-            print("stream_start_error",self.video_id, e)
+            log.error("stream_start_error", video_id=self.video_id, error=str(e))
             raise
 
     async def stop_processing(self):
         """Stop processing the video's comment stream"""
         if self.streaming_query:
             self.streaming_query.stop()
-            print("stream_stopped",self.video_id)
+            log.info("stream_stopped", video_id=self.video_id)

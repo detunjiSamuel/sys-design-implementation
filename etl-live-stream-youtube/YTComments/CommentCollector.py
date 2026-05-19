@@ -2,8 +2,11 @@ import asyncio
 import json
 import os
 
+import structlog
 from YTComments.Comment import Comment
 from kafka import KafkaProducer
+
+log = structlog.get_logger(__name__)
 
 # TODO: pass kafka producer instance from outside : collector corrently uses it directly
 producer = KafkaProducer(
@@ -30,7 +33,7 @@ class CommentsCollector:
     async def _collection_loop(self):
 
         while self.running:
-            print("Collection loop running...")
+            log.debug("collection_loop_tick")
             tasks = []
             dead_video_ids = []
             for video_id, comment_instance in self.active_videos.items():
@@ -38,7 +41,7 @@ class CommentsCollector:
                     task = asyncio.create_task(self._collect_video_comments(comment_instance))
                     tasks.append(task)
                 else:
-                    print(f"Video {video_id} is not live streaming anymore.")
+                    log.info("video_stream_ended", video_id=video_id)
                     dead_video_ids.append(video_id)
             for video_id in dead_video_ids:
                 del self.active_videos[video_id]
@@ -62,7 +65,7 @@ class CommentsCollector:
 
                         } for i in items]
 
-                    print(f"Fetched {len(items)} comments for video {comment_instance.video_id}")
+                    log.info("comments_fetched", video_id=comment_instance.video_id, count=len(items))
                     # TODO: pass kafta producer instance from outside
                     producer.send(f"comments_{comment_instance.video_id}", value=data)
                     producer.flush()  # move to disk from buffer
@@ -70,4 +73,4 @@ class CommentsCollector:
                 await asyncio.sleep(2)  # notuced some rate limiting from youtube api
 
             except Exception as e:
-                print(f"Failed to collect from {comment_instance.video_id}: {e}")
+                log.error("comment_collection_failed", video_id=comment_instance.video_id, error=str(e))

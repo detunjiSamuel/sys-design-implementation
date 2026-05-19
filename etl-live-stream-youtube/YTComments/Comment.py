@@ -1,6 +1,10 @@
 import requests
 import os
 
+import structlog
+
+log = structlog.get_logger(__name__)
+
 
 class Comment:
     def __init__(self , video_id):
@@ -30,7 +34,7 @@ class Comment:
         if res.status_code ==  200:
             return res.json()
         else:
-            print(f"Error_getStreamDetails: {res.status_code} - {res.text}")
+            log.error("get_stream_details_error", status_code=res.status_code, response=res.text)
             return None
 
     def get_live_chat_id(self):
@@ -45,7 +49,7 @@ class Comment:
     def get_live_chat_messages(self):
         url = self._get_live_chat_messages_url()
         if self.next_page_token:
-            print(f"Using next page token: {self.next_page_token}")
+            log.debug("using_next_page_token", token=self.next_page_token)
             url += f"&pageToken={self.next_page_token}"
         res = requests.get(url)
         if res.status_code == 200:
@@ -53,7 +57,7 @@ class Comment:
             self.next_page_token =  res.get('nextPageToken', None)
             return res
         else:
-            print(f"Error_getLiveChatMessage: {res.status_code} - {res.text}")
+            log.error("get_live_chat_messages_error", status_code=res.status_code, response=res.text)
             return None
 
     def is_live_streaming(self):
