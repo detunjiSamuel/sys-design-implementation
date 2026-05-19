@@ -8,20 +8,18 @@ from kafka import KafkaProducer
 
 log = structlog.get_logger(__name__)
 
-# TODO: pass kafka producer instance from outside : collector corrently uses it directly
-producer = KafkaProducer(
-    bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
-    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-)
-
 
 class CommentsCollector:
 
-    def __init__(self, max_concurrent_tasks=5):
+    def __init__(self, max_concurrent_tasks=5, producer=None):
         self.active_videos = {}  # video_id : Comment instance
         self.running = False
         self.semaphore = asyncio.Semaphore(max_concurrent_tasks)
         self._loop_task = None
+        self.producer = producer or KafkaProducer(
+            bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
+            value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+        )
 
     async def start(self):
         self.running = True
@@ -66,9 +64,8 @@ class CommentsCollector:
                         } for i in items]
 
                     log.info("comments_fetched", video_id=comment_instance.video_id, count=len(items))
-                    # TODO: pass kafta producer instance from outside
-                    producer.send(f"comments_{comment_instance.video_id}", value=data)
-                    producer.flush()  # move to disk from buffer
+                    self.producer.send(f"comments_{comment_instance.video_id}", value=data)
+                    self.producer.flush()
 
                 await asyncio.sleep(2)  # notuced some rate limiting from youtube api
 
