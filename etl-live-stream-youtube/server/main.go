@@ -74,7 +74,15 @@ func main() {
 		c.Set("Connection", "keep-alive")
 
 		clientIP := c.IP()
+
+		// Derive a cancellable context from the request context. defer cancel()
+		// inside the writer guarantees the change stream is closed and the
+		// goroutine exits promptly when the client disconnects.
+		ctx, cancel := context.WithCancel(c.Context())
+
 		c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
+			defer cancel()
+
 			streamStart := time.Now()
 			eventsEmitted := 0
 			slog.Info("stream_connected", "ip", clientIP)
@@ -86,14 +94,14 @@ func main() {
 				)
 			}()
 
-			changeStream, err := collection.Watch(context.Background(), mongo.Pipeline{})
+			changeStream, err := collection.Watch(ctx, mongo.Pipeline{})
 			if err != nil {
 				slog.Error("change_stream_create_error", "error", err)
 				return
 			}
-			defer changeStream.Close(context.Background())
+			defer changeStream.Close(ctx)
 
-			for changeStream.Next(context.Background()) {
+			for changeStream.Next(ctx) {
 				var change bson.M
 				if err := changeStream.Decode(&change); err != nil {
 					slog.Error("change_stream_decode_error", "error", err)
@@ -125,7 +133,7 @@ func main() {
 				}
 			}
 
-			if err := changeStream.Err(); err != nil {
+			if err := changeStream.Err(); err != nil && ctx.Err() == nil {
 				slog.Error("change_stream_error", "error", err)
 			}
 		})
