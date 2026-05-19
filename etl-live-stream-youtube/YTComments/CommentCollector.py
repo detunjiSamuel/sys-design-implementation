@@ -1,13 +1,15 @@
 import asyncio
+import json
+import os
 
 from YTComments.Comment import Comment
-
-import json
-
 from kafka import KafkaProducer
 
 # TODO: pass kafka producer instance from outside : collector corrently uses it directly
-producer = KafkaProducer(bootstrap_servers='localhost:9092', value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+producer = KafkaProducer(
+    bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
+    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+)
 
 
 class CommentsCollector:

@@ -1,3 +1,5 @@
+import os
+
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from pyspark.sql.types import (
     FloatType,
@@ -92,7 +94,7 @@ class SentimentProcessor:
             stream_df = (
                 self.spark.readStream
                 .format("kafka")
-                .option("kafka.bootstrap.servers", "127.0.0.1:9092")
+                .option("kafka.bootstrap.servers", os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"))
                 .option("subscribe", f"comments_{self.video_id}")
                 .option("startingOffsets", "latest")
                 .load()
