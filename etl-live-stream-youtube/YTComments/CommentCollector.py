@@ -19,6 +19,9 @@ class CommentsCollector:
         self.producer = producer or KafkaProducer(
             bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
             value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+            retries=5,
+            retry_backoff_ms=300,
+            acks='all',
         )
 
     async def start(self):
