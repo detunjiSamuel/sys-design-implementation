@@ -2,6 +2,7 @@ import os
 
 import structlog
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from pymongo.errors import ConnectionFailure
 from pyspark.sql.types import (
     FloatType,
     StructType,
@@ -10,14 +11,27 @@ from pyspark.sql.types import (
     TimestampType
 )
 from pyspark.sql.functions import col, from_json
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 log = structlog.get_logger(__name__)
 
+_DEAD_LETTER_TOPIC = "dead_letter_comments"
+
+
+def _log_mongo_retry(retry_state) -> None:
+    log.warning(
+        "mongo_insert_retry",
+        attempt=retry_state.attempt_number,
+        exception=str(retry_state.outcome.exception()),
+    )
+
+
 class SentimentProcessor:
-    def __init__(self, video_id, spark, mongodb_collection):
+    def __init__(self, video_id, spark, mongodb_collection, dead_letter_producer=None):
         self.video_id = video_id
         self.spark = spark
         self.collection = mongodb_collection
+        self.dead_letter_producer = dead_letter_producer
         self.streaming_query = None
         self.vader = SentimentIntensityAnalyzer()
 
@@ -40,6 +54,44 @@ class SentimentProcessor:
             "neu": scores["neu"]
         }
 
+    @retry(
+        retry=retry_if_exception_type(ConnectionFailure),
+        wait=wait_exponential(multiplier=1, min=2, max=30),
+        stop=stop_after_attempt(3),
+        before_sleep=_log_mongo_retry,
+    )
+    def _insert_many(self, documents):
+        self.collection.insert_many(documents)
+
+    def _send_to_dead_letter(self, documents, batch_id):
+        if self.dead_letter_producer is None:
+            log.error(
+                "batch_dropped_no_dead_letter_producer",
+                video_id=self.video_id,
+                batch_id=batch_id,
+                count=len(documents),
+            )
+            return
+        try:
+            self.dead_letter_producer.send(
+                _DEAD_LETTER_TOPIC,
+                value={"batch_id": batch_id, "video_id": self.video_id, "documents": documents},
+            )
+            self.dead_letter_producer.flush()
+            log.warning(
+                "batch_dead_lettered",
+                video_id=self.video_id,
+                batch_id=batch_id,
+                count=len(documents),
+            )
+        except Exception as e:
+            log.error(
+                "dead_letter_send_failed",
+                video_id=self.video_id,
+                batch_id=batch_id,
+                error=str(e),
+            )
+
     def process_batch(self, batch_df, batch_id):
         """Process and store a batch of comments"""
         try:
@@ -49,24 +101,26 @@ class SentimentProcessor:
 
             processed_comments = []
             for comment in comments:
-
                 sentiment_scores = self.analyze_sentiment(comment.comment)
-
-                processed_comment = {
+                processed_comments.append({
                     "video_id": self.video_id,
                     "author": comment.author_name,
                     "comment": comment.comment,
                     "profile_image": comment.profile_image,
                     "published_at": comment.published_at,
                     "sentiment": sentiment_scores,
-                    "batch_id": batch_id
-                }
+                    "batch_id": batch_id,
+                })
 
-                processed_comments.append(processed_comment)
+            if not processed_comments:
+                return
 
-            if processed_comments:
-                self.collection.insert_many(processed_comments)
+            try:
+                self._insert_many(processed_comments)
                 log.info("batch_processed", video_id=self.video_id, batch_id=batch_id, comments_count=len(processed_comments))
+            except Exception as e:
+                log.error("batch_insert_failed", video_id=self.video_id, batch_id=batch_id, error=str(e))
+                self._send_to_dead_letter(processed_comments, batch_id)
 
         except Exception as e:
             log.error("batch_processing_error", video_id=self.video_id, batch_id=batch_id, error=str(e))
