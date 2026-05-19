@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -15,6 +16,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+func requestLogger(c *fiber.Ctx) error {
+	start := time.Now()
+	err := c.Next()
+	slog.Info("request",
+		"method", c.Method(),
+		"path", c.Path(),
+		"status", c.Response().StatusCode(),
+		"latency_ms", time.Since(start).Milliseconds(),
+		"ip", c.IP(),
+	)
+	return err
+}
 
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
@@ -34,6 +48,7 @@ func main() {
 	app := fiber.New()
 
 	app.Use(cors.New())
+	app.Use(requestLogger)
 
 	clientOptions := options.Client().ApplyURI(MONGO_URI)
 	client, err := mongo.Connect(context.Background(), clientOptions)
@@ -51,7 +66,18 @@ func main() {
 		c.Set("Cache-Control", "no-cache")
 		c.Set("Connection", "keep-alive")
 
+		clientIP := c.IP()
 		c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
+			streamStart := time.Now()
+			eventsEmitted := 0
+			slog.Info("stream_connected", "ip", clientIP)
+			defer func() {
+				slog.Info("stream_disconnected",
+					"ip", clientIP,
+					"duration_ms", time.Since(streamStart).Milliseconds(),
+					"events_emitted", eventsEmitted,
+				)
+			}()
 
 			changeStream, err := collection.Watch(context.Background(), mongo.Pipeline{})
 			if err != nil {
@@ -87,6 +113,8 @@ func main() {
 						slog.Error("stream_flush_error", "error", err)
 						return
 					}
+
+					eventsEmitted++
 				}
 			}
 
