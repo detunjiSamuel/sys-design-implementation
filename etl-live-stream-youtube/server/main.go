@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/gofiber/fiber/v2"
@@ -17,13 +17,14 @@ import (
 )
 
 func main() {
-	fmt.Println("Hello, World!")
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
+
+	slog.Info("server_starting")
 
 	err := godotenv.Load(".env")
-
 	if err != nil {
-		fmt.Println("Error loading .env file")
-		return
+		slog.Error("dotenv_load_error", "error", err)
+		os.Exit(1)
 	}
 
 	MONGO_URI := os.Getenv("MONGO_URI")
@@ -36,12 +37,11 @@ func main() {
 
 	clientOptions := options.Client().ApplyURI(MONGO_URI)
 	client, err := mongo.Connect(context.Background(), clientOptions)
-
 	if err != nil {
-		fmt.Println("MongoDB connection error:", err)
-		return
+		slog.Error("mongodb_connect_error", "error", err)
+		os.Exit(1)
 	}
-	fmt.Println("Connected to MongoDB!")
+	slog.Info("mongodb_connected")
 
 	collection := client.Database(DB_NAME).Collection(COLLECTION_NAME)
 
@@ -54,9 +54,8 @@ func main() {
 		c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
 
 			changeStream, err := collection.Watch(context.Background(), mongo.Pipeline{})
-
 			if err != nil {
-				fmt.Println("Error creating change stream:", err)
+				slog.Error("change_stream_create_error", "error", err)
 				return
 			}
 			defer changeStream.Close(context.Background())
@@ -64,7 +63,7 @@ func main() {
 			for changeStream.Next(context.Background()) {
 				var change bson.M
 				if err := changeStream.Decode(&change); err != nil {
-					fmt.Println("Error decoding change stream document:", err)
+					slog.Error("change_stream_decode_error", "error", err)
 					continue
 				}
 
@@ -73,31 +72,34 @@ func main() {
 
 					data, err := json.Marshal(doc)
 					if err != nil {
-						fmt.Println("Error with encoding document:", err)
+						slog.Error("document_encode_error", "error", err)
 						continue
 					}
 
 					message := fmt.Sprintf("data: %s\n\n", data)
 
 					if _, err := w.Write([]byte(message)); err != nil {
-						fmt.Println("Error writing to stream:", err)
+						slog.Error("stream_write_error", "error", err)
 						return
 					}
 
 					if err := w.Flush(); err != nil {
-						fmt.Println("Error flushing stream:", err)
+						slog.Error("stream_flush_error", "error", err)
 						return
 					}
 				}
 			}
 
 			if err := changeStream.Err(); err != nil {
-				fmt.Println("Change stream error:", err)
+				slog.Error("change_stream_error", "error", err)
 			}
 		})
 
 		return nil
 	})
-	log.Fatal(app.Listen(":3000"))
 
+	if err := app.Listen(":3000"); err != nil {
+		slog.Error("server_listen_error", "error", err)
+		os.Exit(1)
+	}
 }
