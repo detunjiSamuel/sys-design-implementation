@@ -12,6 +12,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "vaderSentiment>=3.3.2",
     "structlog>=23.2.0",
+    "tenacity>=8.2.0",
     "python-socketio>=5.14.3",
     "eventlet>=0.40.3",
     "yt-dlp>=2024.1.0",
