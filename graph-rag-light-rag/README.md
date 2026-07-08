@@ -128,6 +128,36 @@ Cells are `mean correctness / mean completeness` (LLM-judge, 1-5 scale each). Th
 report (`evals/results.md`) also has a cost/latency-per-mode table and a per-question
 detail table with the judge's rationale for every cell.
 
+## Observability
+
+Every `finrag ask` (and every eval question × mode) opens a root `span("ask", ...)` in
+`observability.py`, nests `classify`/`retrieve`/`generate` spans under it, and always writes
+`runs/traces/{timestamp}_{trace_id}.jsonl` — the CLI's trailing `mode=... latency=...
+cost=$...` line and `evals/results.md`'s cost/latency columns both come from that same
+local trace, so nothing needs a network round trip to render.
+
+Optionally, set three env vars and every span is *also* mirrored into
+[Langfuse](https://cloud.langfuse.com) (free cloud tier, no card required):
+
+```bash
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_HOST=https://cloud.langfuse.com   # default, only needed for self-hosted
+```
+
+With those set, `finrag ask "..."` shows up in the Langfuse UI as a trace named `ask`,
+with `classify`/`retrieve`/`generate` as nested spans and each LLM call as its own
+`generation` observation carrying the model name, input/output token counts, and cost —
+computed from the same pricing table the local JSONL uses. Langfuse gives you the things a
+local file can't: a searchable trace history across runs, cost/latency dashboards, and a UI
+you can point a teammate at.
+
+Leave the three env vars unset and nothing changes — the local JSONL trace is written
+either way, `Langfuse(...)` is never constructed, and no network call is made. That's also
+why the test suite needs no Langfuse account: `tests/test_observability.py` swaps in a
+recording fake for the Langfuse client class to check the mirroring logic without ever
+touching the real SDK's network path.
+
 ## Testing
 
 ```bash

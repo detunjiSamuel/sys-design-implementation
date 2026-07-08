@@ -68,7 +68,7 @@ Every one of these is a question you should be able to answer under interrogatio
 | Vector store | Chroma (embedded, persistent) | Zero-ops: it's a library, not a server. We pass our own embeddings explicitly so nothing is magic. Three collections: `chunks`, `entities`, `relations`. Rejected: pgvector/Qdrant (server to run, no clarity gain at this scale). |
 | Graph store | Neo4j Community via docker-compose | The resume bullet says Cypher, and Cypher reads like pseudocode — perfect for explaining traversals. A `FakeGraphStore` (in-memory dict of nodes/edges) implements the same interface for tests. |
 | Orchestration | LangGraph `StateGraph` for the query pipeline only | Real value: the query flow is a small state machine (classify → retrieve → generate) and LangGraph makes the routing explicit and inspectable. Deliberately NOT used for ingestion — ingestion is a plain script; wrapping it in a framework would be resume-driven engineering. Chunking uses `langchain-text-splitters` (small, genuinely useful). |
-| Observability | Hand-rolled: a `trace` module writing JSONL spans (stage, latency, tokens, cost) + a console summary | An FDE must answer "why is this query slow/expensive" on a customer call. Building the tracing yourself means you understand what a span *is*. LangSmith/Langfuse are one env var away later; starting with them hides the mechanics. |
+| Observability | Langfuse (industry-standard hosted LLM observability) when `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` are set, mirrored from the same thin `span()` calls that always write local JSONL | Using Langfuse for real — not just knowing what it is — is itself a learning goal here (it's a resume line an FDE interview will probe: "walk me through a trace"). The thin local span layer stays underneath it because (a) tests must run hermetically, with no account and no network, (b) the CLI and eval harness need synchronous latency/cost the moment a span closes, not an API round trip to a dashboard, and (c) reading your own span JSONL next to what the vendor tool renders is the fastest way to actually understand what "a trace" and "a generation" mean under the hood, instead of trusting a UI. |
 | Evals | ~24 gold questions in 3 tiers (local / multi-hop / global), LLM-as-judge scoring correctness & completeness, plus latency and cost per query per mode | The eval harness is the deliverable that powers the comparison claim. Tiered questions are the experiment design: each tier is a hypothesis about where graphs help. |
 | Testing | pytest, `FakeLLM` + `FakeGraphStore`, no network/docker needed | FDE reality: CI can't have your API key or a database. Faking at the boundary (our own thin wrappers) keeps tests fast and free. |
 | Code style | Plain functions and small classes, type hints, no inheritance trees, no async | A new grad should be able to hold every module in their head. Cleverness is a cost. |
@@ -302,16 +302,36 @@ phase produces something runnable.
 
 - `observability.py` exposes `span(name, **attrs)` — a context manager. Nested spans share a trace ID.
   Each span records: name, wall-clock ms, and (for LLM spans) model, input/output tokens, computed cost
-  from the pricing table in config.
+  from the pricing table in config. This part is unconditional — no account, no network, no env vars — and
+  it's what the test suite exercises.
 - Every `finrag ask` writes `runs/traces/{timestamp}_{trace_id}.jsonl` — one line per span — and prints a
   summary line. The eval harness aggregates these files; nothing is measured twice.
+- **Langfuse mirror (optional, additive).** If `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set
+  (free cloud tier: https://cloud.langfuse.com), every `span()` call also opens a matching Langfuse
+  observation via the SDK's OpenTelemetry-based `start_as_current_observation`: the root span becomes a
+  Langfuse trace, nested spans become child spans (nesting falls out of Python's own call stack and
+  OpenTelemetry's context propagation — no second stack needed), and `record_llm_usage` additionally opens
+  a short-lived child `generation` observation carrying `model`, `usage_details` (input/output/total
+  tokens), and `cost_details` computed from the same pricing table the local JSONL uses. (A plain `span`
+  observation can't display model/usage/cost — only a `generation`-typed one can — which is why LLM usage
+  becomes its own node in the tree instead of an attribute on the enclosing span.) The root span's exit
+  calls `client.flush()`, since the CLI is short-lived and nothing else guarantees the batched exporter
+  runs before the process exits. With no keys configured, `Langfuse(...)` is never constructed — zero
+  network calls, zero warnings — and tests never need an account, only a fake client class swapped in for
+  `observability.Langfuse`.
 - Failure handling policy (keep it boring): LLM calls get the SDK's built-in retries; extraction failures
   for a single chunk are logged and skipped (never abort a 400-chunk run at chunk 399); every skip is
-  visible in the trace.
+  visible in the trace. A Langfuse flush failure (bad network, bad host) is caught and logged at debug
+  level, never taken as a reason to fail a query that otherwise succeeded — the local JSONL trace is
+  written either way.
 
-**Why hand-rolled:** when a customer asks "why did that query cost 4 cents and take 9 seconds", you open one
-JSONL file and read the spans. When you later adopt Langfuse/LangSmith at a real job, you'll know exactly
-what those products are doing for you.
+**Why keep both:** Langfuse is the tool you'd actually reach for at a job — hosted UI, trace history across
+runs, cost dashboards, prompt/session views — and using it for real (not just knowing the name) is itself a
+resume line worth having. The local span layer stays underneath it because a customer call asking "why did
+that query cost 4 cents and take 9 seconds" shouldn't depend on a dashboard being reachable, because the
+test suite can't require a Langfuse account, and because reading your own span JSONL next to what Langfuse
+renders is the fastest way to actually learn what "a trace" and "a generation" are, instead of trusting a
+UI to tell you.
 
 ---
 
@@ -331,7 +351,13 @@ judge model)?
 
 Ops: What does a trace span contain? Where does the money go per query in each mode (lightrag pays for one
 extra small LLM call at query time — is it worth it)? How would you cut extraction cost 5× (cheaper model
-for extraction — it's a config knob; measure quality delta with the eval harness)?
+for extraction — it's a config knob; measure quality delta with the eval harness)? What does Langfuse add
+over the local JSONL — a hosted UI, trace history across runs and machines, cost/latency aggregation and
+dashboards, prompt/session views, the ability to search and filter traces instead of grepping files — and
+what does the local layer still do that Langfuse doesn't: work with no account/network (hermetic tests),
+give the CLI and eval harness a synchronous number the instant a span closes, and give you a plain-text
+artifact you can read line by line when you want to know exactly what a "trace" or "generation" is under
+the hood?
 
 ---
 

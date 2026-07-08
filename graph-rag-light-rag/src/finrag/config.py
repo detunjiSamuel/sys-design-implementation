@@ -34,6 +34,16 @@ class Settings(BaseSettings):
     extract_model: str = "claude-opus-4-8"
     judge_model: str = "claude-opus-4-8"
 
+    # --- Langfuse --- (no prefix: matches the langfuse SDK's own env var convention)
+    # Optional. Unset (the default) keeps observability.py's Langfuse mirror completely
+    # inert -- local JSONL tracing (runs/traces/) works either way. Sign up free at
+    # https://cloud.langfuse.com to get a public/secret key pair.
+    langfuse_public_key: str = Field(default="", validation_alias="LANGFUSE_PUBLIC_KEY")
+    langfuse_secret_key: str = Field(default="", validation_alias="LANGFUSE_SECRET_KEY")
+    langfuse_host: str = Field(
+        default="https://cloud.langfuse.com", validation_alias="LANGFUSE_HOST"
+    )
+
     # --- Neo4j --- (no prefix: matches the docker-compose / neo4j driver convention)
     neo4j_uri: str = Field(default="bolt://localhost:7687", validation_alias="NEO4J_URI")
     neo4j_user: str = Field(default="neo4j", validation_alias="NEO4J_USER")

@@ -9,6 +9,7 @@ description = "FinGraphRAG — Knowledge Graph RAG over SEC 10-K filings (naive 
 requires-python = ">=3.11"
 dependencies = [
     "anthropic",
+    "langfuse",
     "pydantic",
     "pydantic-settings",
     "python-dotenv",

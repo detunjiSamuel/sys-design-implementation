@@ -99,6 +99,30 @@ the two, and that's the context."
   citations back to chunks from *both* filings.
 - The trace line's cost vs. naive's from step 1 — call out the delta, then bridge to step 5.
 
+## 3b. (If Langfuse is configured) Open the trace for that lightrag query
+
+Skip this beat if `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` aren't set — everything above
+still works with only the local JSONL trace. If they are set, open
+[cloud.langfuse.com](https://cloud.langfuse.com), find the trace named `ask` from the
+lightrag query you just ran (newest at the top), and walk through it live:
+
+**What to point at:**
+- The trace tree: `ask` at the root, with `classify` skipped (mode was explicit), a
+  `retrieve` span, and a `generate` span nested under it — the same shape as the JSONL file
+  in `runs/traces/`, just rendered as a tree instead of a flat list of lines.
+- Inside `generate`, the `llm:<model>` **generation** node — click it and show the model
+  name, input/output token counts, and the computed cost sitting right next to the prompt
+  and completion. This is the node `record_llm_usage` creates specifically because a plain
+  span can't carry cost/usage in Langfuse's schema — only a generation-typed observation can.
+- The span's metadata: `retrieve`'s `mode=lightrag`, `generate`'s `context` (the exact
+  string handed to the model, same thing `--show-context` printed on the command line).
+
+**Say:** "This is the same information as the JSONL file next to it in `runs/traces/` —
+same trace ID, same spans, same numbers — just rendered in a UI with history across runs
+instead of grep. That's the whole design: the local file is what makes tests hermetic and
+gives the CLI its cost line with no API round trip; Langfuse is what you'd actually open at
+a job when you need to compare ten queries side by side or share a trace with a teammate."
+
 ## 4. The eval table
 
 Run (or have already run and just show the file):
