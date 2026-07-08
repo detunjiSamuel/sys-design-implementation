@@ -1,0 +1,306 @@
+# evals/questions.yaml — gold question set for the FinGraphRAG eval harness.
+#
+# *** DRAFT GOLD ANSWERS — READ BEFORE TRUSTING ANY EVAL NUMBER ***
+# The `gold` field on every question below was written from general knowledge of these
+# six companies' well-known, widely reported 10-K disclosures (supply chain concentration,
+# capital rules, patent cliffs, etc.) — NOT by reading the actual downloaded filings in
+# data/raw/. PLAN.md is explicit that writing gold answers yourself, after reading the
+# filings, is how you learn the corpus; that step has not been done here.
+#
+# Before trusting any number in evals/results.md:
+#   1. Run `finrag download && finrag chunk` to pull the real filings.
+#   2. For each question, open the relevant chunk(s) and check the `gold` answer against
+#      the actual text — fix wording, numbers, and specifics as needed.
+#   3. Only then treat the eval table as evidence rather than a scaffold.
+#
+# Structure: 24 questions, 8 per tier (local / multi_hop / global), across the six
+# companies in config.py's default corpus: AAPL, MSFT, NVDA, JPM, XOM, PFE.
+#   - local:     answerable from a single chunk of a single filing.
+#   - multi_hop: connects 2-3 entities/companies; naive top-k retrieval structurally
+#                struggles here because no single chunk mentions all the linked entities.
+#   - global:    a theme that recurs across most/all six filings; requires synthesizing
+#                across companies, not just across chunks of one filing.
+
+- id: local_01
+  tier: local
+  question: What does Apple say about its reliance on outsourced manufacturing and a concentrated set of suppliers?
+  gold: >
+    Apple's 10-K discloses that substantially all of its manufacturing is performed by a
+    small number of outsourcing partners, concentrated in China and other parts of Asia,
+    and that many components come from single or limited sources. This concentration
+    exposes Apple to disruption from natural disasters, geopolitical tension, and
+    supplier capacity constraints that could interrupt production of its products.
+
+- id: local_02
+  tier: local
+  question: What does NVIDIA identify as the primary driver of its data center revenue growth?
+  gold: >
+    NVIDIA attributes data center revenue growth mainly to surging demand for accelerated
+    computing and AI infrastructure, particularly GPUs used to train and run large
+    generative AI and large language models at hyperscale cloud providers and enterprises.
+    It also cites its full-stack platform (hardware plus CUDA software) as a differentiator
+    driving that demand.
+
+- id: local_03
+  tier: local
+  question: What regulatory capital requirements does JPMorgan discuss as constraints on its business?
+  gold: >
+    JPMorgan discusses Basel III-based capital rules, including minimum Common Equity
+    Tier 1 (CET1) ratios, the Global Systemically Important Bank (G-SIB) capital
+    surcharge, and stress-test-driven requirements such as the Comprehensive Capital
+    Analysis and Review (CCAR). It notes that these rules constrain leverage, limit
+    capital distributions, and require it to hold capital buffers above regulatory minimums.
+
+- id: local_04
+  tier: local
+  question: How does ExxonMobil describe its exposure to commodity price volatility?
+  gold: >
+    ExxonMobil states that its revenue, cash flow, and earnings are highly sensitive to
+    the market prices of crude oil, natural gas, and refined products, which are set by
+    global supply and demand and are volatile and largely outside its control. It notes
+    that sustained low prices can reduce profitability, impair asset values, and affect
+    the economics of capital projects.
+
+- id: local_05
+  tier: local
+  question: What does Pfizer say about the risk of patent expirations ("patent cliff") to its revenue?
+  gold: >
+    Pfizer discloses that loss of patent protection and regulatory exclusivity on key
+    products exposes it to generic and biosimilar competition, which can cause rapid and
+    significant revenue declines once exclusivity ends. It names specific products
+    approaching or past loss of exclusivity (e.g., Eliquis, Ibrance) as material to this risk.
+
+- id: local_06
+  tier: local
+  question: What cybersecurity risks does Microsoft highlight in its risk factors?
+  gold: >
+    Microsoft's risk factors describe exposure to cyberattacks, data breaches, and
+    security vulnerabilities across its cloud services, products, and internal systems,
+    including attacks from increasingly sophisticated state-sponsored and criminal actors.
+    It notes that a significant breach could harm customer trust, trigger regulatory
+    liability, and disrupt its cloud/Azure business.
+
+- id: local_07
+  tier: local
+  question: How does Apple describe the growth of its Services segment?
+  gold: >
+    Apple describes Services (App Store, iCloud, Apple Music, AppleCare, advertising, and
+    payment services) as a growing, higher-margin complement to its hardware business,
+    driven by an expanding installed base of active devices and increasing
+    subscriptions/attach rates. It flags this recurring-revenue growth as a strategic
+    priority alongside hardware sales.
+
+- id: local_08
+  tier: local
+  question: How does Microsoft frame its investment in AI (e.g., Copilot, OpenAI partnership) as a growth strategy?
+  gold: >
+    Microsoft frames AI as a central growth strategy, embedding Copilot across Office,
+    Windows, GitHub, and Azure, and investing heavily in AI infrastructure and its
+    partnership with OpenAI to offer foundation models through Azure. It positions
+    generative AI as a driver of both new product revenue and increased Azure cloud
+    consumption, while also flagging the substantial capital expenditure required.
+
+- id: multi_hop_01
+  tier: multi_hop
+  question: How does dependence on TSMC connect Apple's and NVIDIA's supply chain risk disclosures?
+  gold: >
+    Both Apple and NVIDIA rely heavily on Taiwan Semiconductor Manufacturing Company
+    (TSMC) as a primary or sole source for advanced chip fabrication, making each
+    company's product supply dependent on a single foundry concentrated in Taiwan. Both
+    filings flag geopolitical risk in the Taiwan Strait and TSMC's limited advanced-node
+    capacity as a shared point of failure that could disrupt production for both companies
+    simultaneously.
+
+- id: multi_hop_02
+  tier: multi_hop
+  question: How does interest-rate exposure link JPMorgan's and ExxonMobil's risk disclosures?
+  gold: >
+    JPMorgan is directly exposed to interest-rate risk through net interest income,
+    deposit pricing, and the value of its securities portfolio, all of which move with Fed
+    policy rates. ExxonMobil is exposed more indirectly: higher rates raise the cost of
+    debt financing for its large, long-lived capital projects and can affect the discount
+    rates used in impairment and reserve valuations, so both companies flag rate
+    volatility as a risk, but through different transmission channels (bank balance sheet
+    vs. project financing cost).
+
+- id: multi_hop_03
+  tier: multi_hop
+  question: How does Pfizer's FDA/regulatory exclusivity risk compare to the regulatory risks JPMorgan and Microsoft disclose?
+  gold: >
+    Pfizer's regulatory risk centers on FDA approval, post-market safety requirements, and
+    loss of patent/regulatory exclusivity, where a single agency decision can materially
+    cut a product's revenue. JPMorgan's regulatory risk is prudential and conduct-focused
+    (bank capital/liquidity rules, consumer-protection and AML enforcement) rather than
+    product-approval-based, while Microsoft's is increasingly antitrust and AI/data-privacy
+    regulation across many jurisdictions; all three treat regulation as a top-tier risk but
+    the mechanism (approval risk vs. capital rules vs. antitrust/privacy rules) differs by industry.
+
+- id: multi_hop_04
+  tier: multi_hop
+  question: How does AI compute demand connect NVIDIA as a supplier and Microsoft as a buyer/deployer?
+  gold: >
+    NVIDIA's data center revenue is driven substantially by hyperscale cloud providers,
+    including Microsoft, purchasing GPUs to build out AI training and inference capacity.
+    Microsoft's filings describe large capital expenditure on AI infrastructure (including
+    NVIDIA hardware) to power Azure AI services and Copilot, so NVIDIA's growth and
+    Microsoft's AI capex are two sides of the same demand relationship, and each company's
+    filing separately flags dependence on the other side of that transaction (supply
+    concentration for Microsoft, customer concentration for NVIDIA).
+
+- id: multi_hop_05
+  tier: multi_hop
+  question: How does China exposure connect Apple's manufacturing/sales risk and NVIDIA's export-control risk?
+  gold: >
+    Apple is exposed to China both as a manufacturing base (most products assembled there)
+    and as a major sales market, making it sensitive to China-U.S. trade tension and local
+    economic conditions. NVIDIA is exposed to China primarily through U.S. export controls
+    that restrict sales of its most advanced AI chips to Chinese customers, directly
+    reducing addressable revenue. Both filings treat U.S.-China relations as a material
+    risk, but Apple's exposure is operational/demand-side while NVIDIA's is a direct
+    regulatory sales restriction.
+
+- id: multi_hop_06
+  tier: multi_hop
+  question: How do Microsoft and JPMorgan each describe the risk of competing for skilled technical talent?
+  gold: >
+    Microsoft cites intense competition for engineering and AI research talent as a risk
+    to its ability to innovate and execute its product roadmap, given competition from
+    other large tech firms and startups. JPMorgan cites competition for talent in
+    technology, quantitative, and banking roles, noting that fintech firms and tech
+    companies compete for the same skilled workers it needs to run its systems and
+    trading operations; both frame talent competition as a cost and execution risk rather
+    than a core-business risk.
+
+- id: multi_hop_07
+  tier: multi_hop
+  question: How does climate transition risk connect ExxonMobil's operations and JPMorgan's financing exposure?
+  gold: >
+    ExxonMobil faces direct climate transition risk: regulation, carbon pricing, and
+    demand shifts away from fossil fuels could strand assets and reduce the value of its
+    oil and gas reserves. JPMorgan faces indirect exposure through its lending and
+    underwriting relationships with carbon-intensive clients like ExxonMobil — if those
+    clients' assets lose value or face stricter regulation, JPMorgan's credit risk and
+    reputational risk from financing them both rise, linking the two companies through
+    a lender-borrower version of the same transition risk.
+
+- id: multi_hop_08
+  tier: multi_hop
+  question: How do JPMorgan and Pfizer each describe cybersecurity/data-breach risk given the sensitivity of the data they hold?
+  gold: >
+    JPMorgan describes cybersecurity risk around protecting customer financial data,
+    payment systems, and trading infrastructure, where a breach could cause direct
+    financial loss, regulatory penalties, and loss of customer trust. Pfizer describes
+    cybersecurity risk around protecting clinical trial data, patient health information,
+    and manufacturing/R&D systems, where a breach could compromise regulatory
+    submissions, intellectual property, or patient privacy; both treat their respective
+    regulated, sensitive data as a reason cyber risk is elevated relative to a typical company.
+
+- id: global_01
+  tier: global
+  question: What common macroeconomic risks (inflation, interest rates, recession) appear across all six companies' filings?
+  gold: >
+    All six companies flag macroeconomic volatility — inflation raising input/labor
+    costs, rising interest rates raising financing costs, and the risk of recession
+    reducing demand — as material risks, though the transmission differs: JPMorgan is
+    exposed through credit losses and net interest margin, ExxonMobil through commodity
+    demand and project costs, Apple/Microsoft/NVIDIA through consumer/enterprise IT
+    spending, and Pfizer through healthcare spending and currency effects on
+    international sales. The shared theme is that macro conditions outside any single
+    company's control can compress demand or margins across the whole portfolio at once.
+
+- id: global_02
+  tier: global
+  question: How does each of the six companies frame artificial intelligence in its 10-K, as opportunity, risk, or both?
+  gold: >
+    NVIDIA and Microsoft frame AI primarily as a growth opportunity (chip demand and
+    Copilot/Azure AI respectively) while also flagging execution and competitive risk if
+    they fail to keep pace. Apple frames AI (Apple Intelligence) as a product
+    differentiator and future services driver. JPMorgan and Pfizer discuss AI more as an
+    operational efficiency and risk-management tool internally, while also flagging new
+    risks (model errors, regulatory scrutiny, third-party AI vendor risk). ExxonMobil
+    discusses AI/data analytics as an efficiency tool for operations rather than a
+    strategic growth driver. Across all six, AI appears both as upside and as a new
+    category of operational/regulatory risk.
+
+- id: global_03
+  tier: global
+  question: What climate-related and broader regulatory themes recur across the six filings?
+  gold: >
+    ExxonMobil has the most direct climate-transition and environmental-regulation
+    exposure (carbon pricing, emissions rules, reserve valuation). JPMorgan discloses
+    climate risk mainly through financed-emissions and client-transition exposure plus
+    prudential banking regulation. Pfizer's dominant regulatory theme is FDA/drug
+    approval rather than climate. Apple, Microsoft, and NVIDIA disclose climate risk more
+    around operational footprint, supply chain emissions commitments, and increasing
+    disclosure regulation (e.g., SEC and EU climate-reporting rules), plus growing
+    antitrust/AI/data-privacy regulation. The recurring theme is that regulatory
+    complexity is rising for all six, but which regulatory regime dominates (climate,
+    prudential, FDA, antitrust) is industry-specific.
+
+- id: global_04
+  tier: global
+  question: What customer or revenue concentration risks are disclosed across the six companies?
+  gold: >
+    NVIDIA discloses meaningful revenue concentration among a small number of large cloud
+    /hyperscale customers. Apple discloses reliance on a concentrated set of manufacturing
+    partners and, geographically, on China for both production and sales. ExxonMobil's
+    concentration is more about commodity/customer-market exposure than individual
+    counterparties. JPMorgan and Pfizer are comparatively diversified across customers but
+    disclose concentration in specific products (Pfizer, e.g., a few blockbuster drugs) or
+    counterparty/credit exposures (JPMorgan, large institutional counterparties).
+    Concentration risk recurs across the portfolio but attaches to different nodes:
+    customers, suppliers, products, or geographies depending on the business model.
+
+- id: global_05
+  tier: global
+  question: How prominent is cybersecurity and data-privacy risk as a shared theme across the six filings?
+  gold: >
+    All six companies list cybersecurity and data privacy among their top risk factors.
+    Microsoft, Apple, and NVIDIA emphasize protecting cloud services, customer data, and
+    intellectual property (including AI models and chip designs). JPMorgan emphasizes
+    financial data and payment-system integrity given its role as a systemically important
+    bank. Pfizer emphasizes clinical trial and patient health data. ExxonMobil emphasizes
+    operational technology and industrial control systems, since a breach there could
+    disrupt physical operations, not just data. The shared theme: rising sophistication of
+    attackers and the increasing regulatory penalty for a breach, with the specific "crown
+    jewels" at risk varying by company.
+
+- id: global_06
+  tier: global
+  question: What geopolitical risks (trade tension, tariffs, sanctions) recur across the six companies?
+  gold: >
+    Apple and NVIDIA both flag U.S.-China trade tension prominently — Apple through
+    manufacturing/tariff exposure and NVIDIA through export controls on advanced chips.
+    ExxonMobil flags geopolitical risk in the countries where it operates or sources
+    reserves, including sanctions regimes. JPMorgan flags sanctions-compliance risk and
+    geopolitical instability affecting global markets and counterparties. Microsoft and
+    Pfizer flag geopolitical risk more around global operations, data-localization laws,
+    and cross-border regulatory divergence. The shared theme is that global operations
+    create exposure to trade policy and sanctions outside any company's control, with
+    China-related exposure the most common single thread.
+
+- id: global_07
+  tier: global
+  question: How do the six companies each frame competitive risk in their filings?
+  gold: >
+    Apple, Microsoft, and NVIDIA frame competition around rapid technological change and
+    well-funded rivals in hardware, cloud, and AI chips respectively. JPMorgan frames
+    competition around both traditional banks and non-bank fintech entrants. ExxonMobil
+    frames competition around other integrated oil majors and, longer-term, alternative
+    energy sources. Pfizer frames competition around other branded pharma companies and,
+    critically, generic/biosimilar entrants once patents expire. Across all six, the
+    common thread is that failure to keep innovating (product, rates, therapies, or
+    energy sources) is described as an existential rather than incremental risk.
+
+- id: global_08
+  tier: global
+  question: How do the six companies frame human capital and talent retention as a risk?
+  gold: >
+    Microsoft and NVIDIA emphasize competition for scarce AI/engineering talent as a risk
+    to innovation. Apple emphasizes retaining talent across design, engineering, and retail
+    given competition from other tech firms. JPMorgan emphasizes competition for
+    technology and banking talent, partly from fintech entrants. ExxonMobil emphasizes
+    retaining technical/engineering talent for complex energy projects amid a
+    generational workforce shift. Pfizer emphasizes retaining scientific and R&D talent
+    critical to its drug pipeline. Across all six, the shared theme is that people, not
+    just capital, are treated as a constrained and competed-for resource.

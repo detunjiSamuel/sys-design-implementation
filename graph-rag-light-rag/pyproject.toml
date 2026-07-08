@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finrag"
+version = "0.1.0"
+description = "FinGraphRAG — Knowledge Graph RAG over SEC 10-K filings (naive vs GraphRAG vs LightRAG)"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic",
+    "pydantic",
+    "pydantic-settings",
+    "python-dotenv",
+    "chromadb",
+    "fastembed",
+    "neo4j",
+    "langgraph",
+    "langchain-text-splitters",
+    "edgartools",
+    "typer",
+    "rich",
+    "pyyaml",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+finrag = "finrag.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
